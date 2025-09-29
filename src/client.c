@@ -6,18 +6,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-
-
-#define EVENT_SIZE (sizeof(struct inotify_event))
-#define RETRY_COUNT 4
-#define PATH_MAX 108
-#define SOCKET_NAME "waypipe-daemon.sock"
-
-char *get_socket_directory(void);
-char *get_socket_path(void);
-int connect_to_daemon(const char *path);
-int wait_inotify(const char *socket_directory);
-int start_daemon(void);
+#include "client.h"
 
 int main(int argc, char *argv[]) {
     const char *socket_directory = get_socket_directory();
