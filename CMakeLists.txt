@@ -4,6 +4,8 @@ project(WaypipeDaemon C)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
-add_executable(WaypipeDaemon src/daemon.c)
+add_executable(WaypipeDaemon src/daemon.c
+        src/protocol.h)
 add_executable(WaypipeDaemonClient src/client.c
-        src/client.h)
+        src/client.h
+        src/protocol.h)
