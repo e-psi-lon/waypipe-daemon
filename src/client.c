@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
  */
 char *get_socket_directory(void) {
     const uid_t uid = getuid();
-    static char path[PATH_MAX];
+    static char path[SOCKET_PATH_MAX];
     snprintf(path, sizeof(path), "/run/user/%d/", uid);
     path[sizeof(path) - 1] = '\0';
     return path;
@@ -55,7 +55,7 @@ char *get_socket_directory(void) {
  * @return The socket file path for the current user
  */
 char *get_socket_path(void) {
-    static char filepath[PATH_MAX];
+    static char filepath[SOCKET_PATH_MAX];
     const uid_t uid = getuid();
     snprintf(filepath, sizeof(filepath), "/run/user/%d/%s", uid, SOCKET_NAME);
     filepath[sizeof(filepath) - 1] = '\0';
