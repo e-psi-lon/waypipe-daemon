@@ -1,7 +1,3 @@
-//
-// Created by admin on 29/09/2025.
-//
-
 #ifndef WAYPIPEDAEMON_PROTOCOL_H
 #define WAYPIPEDAEMON_PROTOCOL_H
 #include <stdint.h>
@@ -12,9 +8,9 @@ typedef struct {
 } message_header_t;
 
 typedef enum {
-    MSG_START_WAYPIPE = 1,
-    MSG_STOP_WAYPIPE = 2,
-    MSG_STATUS_REQUEST = 3,
+    MSG_HELLO = 1,
+    MSG_READY = 2,
+    MSG_SEND = 3,
     MSG_RESPONSE_OK = 100,
     MSG_RESPONSE_ERROR = 101
 } message_type_t;
