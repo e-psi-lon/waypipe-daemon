@@ -20,5 +20,8 @@ typedef struct {
     char data[];  // Variable payload
 } message_t;
 
+int read_message(int sockfd, message_t **msg);
+int send_message(int sockfd, message_t *msg);
+void free_message(message_t *msg);
 
 #endif //WAYPIPEDAEMON_PROTOCOL_H
