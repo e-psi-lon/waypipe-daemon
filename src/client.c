@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <sys/inotify.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
 #include "client.h"
@@ -23,7 +24,7 @@ int main(int argc, char *argv[]) {
         }
         sockfd = connect_to_daemon(socket_path);
         if (sockfd < 0) {
-            fprintf(stderr, "Daemon socket not found after restart");
+            fprintf(stderr, "Daemon socket not found after restart\n");
             return EXIT_FAILURE;
         }
         printf("Daemon started.\n");
@@ -44,7 +45,6 @@ char *get_socket_directory(void) {
     const uid_t uid = getuid();
     static char path[SOCKET_PATH_MAX];
     snprintf(path, sizeof(path), "/run/user/%d/", uid);
-    path[sizeof(path) - 1] = '\0';
     return path;
 }
 
@@ -58,7 +58,6 @@ char *get_socket_path(void) {
     static char filepath[SOCKET_PATH_MAX];
     const uid_t uid = getuid();
     snprintf(filepath, sizeof(filepath), "/run/user/%d/%s", uid, SOCKET_NAME);
-    filepath[sizeof(filepath) - 1] = '\0';
     return filepath;
 }
 
@@ -71,7 +70,6 @@ int connect_to_daemon(const char *path) {
     struct sockaddr_un addr;
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
-    addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
     if (connect(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("connect");
         close(sockfd);

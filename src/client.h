@@ -1,5 +1,6 @@
 #ifndef CLIENT_H
 #define CLIENT_H
+#include <sys/inotify.h>
 
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define RETRY_COUNT 4
