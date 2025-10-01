@@ -1,5 +1,6 @@
 #ifndef WAYPIPEDAEMON_PROTOCOL_H
 #define WAYPIPEDAEMON_PROTOCOL_H
+#include <stddef.h>
 #include <stdint.h>
 
 typedef struct {
@@ -20,8 +21,10 @@ typedef struct {
     char data[];  // Variable payload
 } message_t;
 
-int read_message(int sockfd, message_t **msg);
+message_t *create_message(message_type_t type, const char *data, size_t length);
+int read_message(int sockfd, message_t **msgs);
 int send_message(int sockfd, message_t *msg);
 void free_message(message_t *msg);
+void free_messages(message_t **msgs, size_t count);
 
 #endif //WAYPIPEDAEMON_PROTOCOL_H
