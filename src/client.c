@@ -55,7 +55,9 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
     if (response->header.type != MSG_READY) {
-        fprintf(stderr, "Unexpected message type from daemon: %u\n", (unsigned) response->header.type);
+        char buf[32];
+        get_message_type_string(response->header.type, buf, sizeof(buf));
+        fprintf(stderr, "Unexpected message type from daemon: %s\n", buf);
         free_message(response);
         close(sockfd);
         return EXIT_FAILURE;

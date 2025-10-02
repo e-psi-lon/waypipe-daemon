@@ -20,7 +20,7 @@ typedef struct {
     message_header_t header;
     char data[];  // Variable payload
 } message_t;
-
+void get_message_type_string(message_type_t type, char *buf, size_t buf_size);
 message_t *create_message(message_type_t type, const char *data, size_t length);
 int read_message(int sockfd, message_t **msgs);
 int send_message(int sockfd, message_t *msg);
