@@ -1,0 +1,34 @@
+# Build directories
+build/
+cmake-build-*/
+cmake-build-debug/
+
+# CMake cache and generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+compile_commands.json
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.so.*
+*.d
+
+# Executables and temporary files
+*.out
+*.exe
+
+# Editor/IDE files
+.vscode/
+*.swp
+*~
+
+# Testing
+Testing/
+
+# Package manager / deps
+_deps/
