@@ -8,6 +8,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include "client.h"
+#include "protocol.h"
 
 int main(int argc, char *argv[]) {
     const char *socket_directory = get_socket_directory();
@@ -28,9 +29,39 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
         printf("Daemon started.\n");
+    } else {
+        printf("Connecting to existing daemon...\n");
+        // Alert the daemon that a new client has connected
+        message_t *hello_msg = create_message(MSG_HELLO, NULL, 0);
+        if (!hello_msg) {
+            fprintf(stderr, "Failed to create HELLO message\n");
+            close(sockfd);
+            return EXIT_FAILURE;
+        }
+        if (send_message(sockfd, hello_msg) != EXIT_SUCCESS) {
+            fprintf(stderr, "Failed to send HELLO message\n");
+            free_message(hello_msg);
+            close(sockfd);
+            return EXIT_FAILURE;
+        }
+        free_message(hello_msg);
     }
     printf("Waypipe client started.\n");
-    // Then send the request to the daemon
+    // Await for a READY message from the daemon
+    message_t *response = NULL;
+    if (read_message(sockfd, &response) != EXIT_SUCCESS) {
+        fprintf(stderr, "Failed to read message from daemon\n");
+        close(sockfd);
+        return EXIT_FAILURE;
+    }
+    if (response->header.type != MSG_READY) {
+        fprintf(stderr, "Unexpected message type from daemon: %u\n", (unsigned) response->header.type);
+        free_message(response);
+        close(sockfd);
+        return EXIT_FAILURE;
+    }
+    free_message(response);
+    printf("Connected to daemon successfully.\n");
 
     close(sockfd);
     return EXIT_SUCCESS;
