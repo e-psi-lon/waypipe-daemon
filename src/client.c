@@ -66,6 +66,42 @@ int main(int argc, char *argv[]) {
     free_message(response);
     log_info("Connected to daemon successfully.");
 
+    char argument_string_buf[1024];
+    argument_string_buf[0] = '\0';
+    for (int i = 1; i < argc; i++) {
+        strncat(argument_string_buf, argv[i], sizeof(argument_string_buf) - strlen(argument_string_buf) - 1);
+        if (i < argc - 1) {
+            strncat(argument_string_buf, " ", sizeof(argument_string_buf) - strlen(argument_string_buf) - 1);
+        }
+    }
+    message_t *command = create_message(MSG_SEND, argument_string_buf, strlen(argument_string_buf));
+    if (!command) {
+        log_err("Failed to create command message");
+        close(sockfd);
+        return EXIT_FAILURE;
+    }
+    if (send_message(sockfd, command) != EXIT_SUCCESS){
+        log_err("Failed to send command message");
+        free_message(command);
+        close(sockfd);
+        return EXIT_FAILURE;
+    }
+    free_message(command);
+    log_info("Command sent to daemon: \"%s\"", argument_string_buf);
+    message_t *success_response = read_message(sockfd);
+    if (!success_response) {
+        log_err("Failed to read response from daemon");
+        close(sockfd);
+        return EXIT_FAILURE;
+    }
+    if (success_response->header.type != MSG_RESPONSE_OK) {
+        log_err("Daemon didn't receive the command successfully: %s", success_response->data);
+        free_message(success_response);
+        close(sockfd);
+        return EXIT_FAILURE;
+    }
+    log_info("Command received by the daemon successfully.");
+    free_message(success_response);
     close(sockfd);
     closelog();
     return EXIT_SUCCESS;
@@ -93,6 +129,7 @@ char *get_socket_path(void) {
     static char filepath[SOCKET_PATH_MAX];
     const uid_t uid = getuid();
     snprintf(filepath, sizeof(filepath), "/run/user/%d/%s", uid, DAEMON_INT_SOCK);
+    log_debug("Socket path: %s", filepath);
     return filepath;
 }
 
