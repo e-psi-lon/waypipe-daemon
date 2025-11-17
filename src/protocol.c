@@ -3,7 +3,6 @@
 #include <string.h>
 #include <inttypes.h>
 #include <stdio.h>
-#include <bits/socket.h>
 #include <sys/socket.h>
 
 #include "logging.h"
@@ -71,7 +70,28 @@ message_t *read_message(int sockfd) {
     return msg;
 }
 
-int send_message(int sockfd, message_t *msg) {
+int send_message(const int sockfd, const message_t *msg) {
+    ssize_t length = send(sockfd, &msg->header, sizeof(message_header_t), MSG_NOSIGNAL);
+    if (length < 0) {
+        perror("send");
+        return EXIT_FAILURE;
+    }
+    if (length < sizeof(message_header_t)) {
+        log_err("Incomplete message header sent");
+        return EXIT_FAILURE;
+    }
+    // If data is present
+    if (msg->header.length > 0) {
+        length = send(sockfd, msg->data, msg->header.length, MSG_NOSIGNAL);
+        if (length < 0) {
+            perror("send");
+            return EXIT_FAILURE;
+        }
+        if (length < msg->header.length) {
+            log_err("Incomplete message data sent");
+            return EXIT_FAILURE;
+        }
+    }
     return EXIT_SUCCESS;
 }
 
