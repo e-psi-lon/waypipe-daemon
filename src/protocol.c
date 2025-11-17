@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+#include "logging.h"
 
 void get_message_type_string(const message_type_t type, char *buf, size_t buf_size) {
     const char *name = NULL;
@@ -22,7 +23,7 @@ void get_message_type_string(const message_type_t type, char *buf, size_t buf_si
     }
 }
 
-message_t *create_message(const message_type_t type, const char *data, size_t length) {
+message_t *create_message(const message_type_t type, const char *data, const size_t length) {
     message_t *msg = malloc(sizeof(message_header_t) + length);
     if (!msg) return NULL;
     msg->header.type = type;
@@ -30,6 +31,7 @@ message_t *create_message(const message_type_t type, const char *data, size_t le
     if (data && length > 0) {
         memcpy(msg->data, data, length);
     }
+    log_debug("Allocating message with type: %", PRIu32, msg->header.type);
     return msg;
 }
 
@@ -43,6 +45,7 @@ int send_message(int sockfd, message_t *msg) {
 
 void free_message(message_t *msg) {
     if (!msg) return;
+    log_debug("Freeing message with type: %" PRIu32, msg->header.type);
     free(msg);
 }
 

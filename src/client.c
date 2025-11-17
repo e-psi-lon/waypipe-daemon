@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include "client.h"
 #include "protocol.h"
+#include "logging.h"
 
 int main(int argc, char *argv[]) {
     const char *socket_directory = get_socket_directory();
@@ -16,7 +17,7 @@ int main(int argc, char *argv[]) {
     int sockfd = connect_to_daemon(socket_path);
 
     if (sockfd < 0) {
-        printf("Daemon not running. Starting daemon...\n");
+        log_info("Daemon not running. Starting daemon...");
         // Starts the daemon if not running
         start_daemon();
         const int status = wait_inotify(socket_directory);
@@ -25,47 +26,48 @@ int main(int argc, char *argv[]) {
         }
         sockfd = connect_to_daemon(socket_path);
         if (sockfd < 0) {
-            fprintf(stderr, "Daemon socket not found after restart\n");
+            log_err("Daemon socket not found after restart");
             return EXIT_FAILURE;
         }
-        printf("Daemon started.\n");
+        log_info("Daemon started.");
     } else {
-        printf("Connecting to existing daemon...\n");
+        log_info("Connecting to existing daemon...");
         // Alert the daemon that a new client has connected
         message_t *hello_msg = create_message(MSG_HELLO, NULL, 0);
         if (!hello_msg) {
-            fprintf(stderr, "Failed to create HELLO message\n");
+            log_err("Failed to create HELLO message");
             close(sockfd);
             return EXIT_FAILURE;
         }
         if (send_message(sockfd, hello_msg) != EXIT_SUCCESS) {
-            fprintf(stderr, "Failed to send HELLO message\n");
+            log_err("Failed to send HELLO message");
             free_message(hello_msg);
             close(sockfd);
             return EXIT_FAILURE;
         }
         free_message(hello_msg);
     }
-    printf("Waypipe client started.\n");
+    log_info("Waypipe client started.");
     // Await for a READY message from the daemon
     message_t *response = NULL;
     if (read_message(sockfd, &response) != EXIT_SUCCESS) {
-        fprintf(stderr, "Failed to read message from daemon\n");
+        log_err("Failed to read message from daemon");
         close(sockfd);
         return EXIT_FAILURE;
     }
     if (response->header.type != MSG_READY) {
         char buf[32];
         get_message_type_string(response->header.type, buf, sizeof(buf));
-        fprintf(stderr, "Unexpected message type from daemon: %s\n", buf);
+        log_err("Unexpected message type from daemon: %s", buf);
         free_message(response);
         close(sockfd);
         return EXIT_FAILURE;
     }
     free_message(response);
-    printf("Connected to daemon successfully.\n");
+    log_info("Connected to daemon successfully.");
 
     close(sockfd);
+    closelog();
     return EXIT_SUCCESS;
 }
 
@@ -136,8 +138,8 @@ int wait_inotify(const char *socket_directory) {
         }
         for (size_t i = 0; i < length;) {
             const struct inotify_event *event = (const struct inotify_event *)&event_buf[i];
-            if (event->len > 0 && (event->mask & IN_CREATE) && strcmp(event->name, SOCKET_NAME) == 0) {
-                printf("Daemon socket created. Connecting...\n");
+            if (event->len > 0 && (event->mask & IN_CREATE) && strcmp(event->name, DAEMON_INT_SOCK) == 0) {
+                log_info("Daemon socket created. Connecting...");
                 socket_found = true;
                 break;
             }
@@ -147,7 +149,7 @@ int wait_inotify(const char *socket_directory) {
     inotify_rm_watch(inotify_fd, watch_fd);
     close(inotify_fd);
     if (!socket_found) {
-        fprintf(stderr, "Daemon socket not found after %d retries.\n", RETRY_COUNT);
+        log_err("Daemon socket not found after %d retries.", RETRY_COUNT);
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
@@ -156,6 +158,6 @@ int wait_inotify(const char *socket_directory) {
 
 int start_daemon(void) {
     // This is a placeholder for starting the daemon process.
-    printf("Starting daemon process...\n");
+    log_info("Starting daemon process...");
     return 0;
 }

@@ -6,8 +6,12 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 add_executable(wdaemon src/daemon.c
         src/protocol.h
-        src/protocol.c)
+        src/protocol.c
+        src/logging.h
+        src/logging.c
+        src/daemon.h)
 add_executable(wdclient src/client.c
         src/client.h
         src/protocol.h
-        src/protocol.c)
+        src/logging.h
+        src/logging.c)
