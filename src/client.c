@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <libgen.h>
 #include "client.h"
 #include "protocol.h"
 #include "logging.h"
@@ -194,7 +196,51 @@ int wait_inotify(const char *socket_directory) {
 }
 
 int start_daemon(void) {
-    // This is a placeholder for starting the daemon process.
     log_info("Starting daemon process...");
-    return 0;
+
+    const pid_t pid = fork();
+    if (pid < 0) {
+        perror("fork");
+        return EXIT_FAILURE;
+    }
+
+    if (pid > 0) {
+        return EXIT_SUCCESS;
+    }
+
+    const int devnull = open("/dev/null", O_RDWR);
+    if (devnull < 0) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+    dup2(devnull, STDIN_FILENO);
+    dup2(devnull, STDOUT_FILENO);
+    dup2(devnull, STDERR_FILENO);
+    if (devnull > 2) {
+        close(devnull);
+    }
+
+    if (setsid() < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    char client_path[1024];
+    const ssize_t len = readlink("/proc/self/exe", client_path, sizeof(client_path) - 1);
+    if (len < 0) {
+        exit(EXIT_FAILURE);
+    }
+    client_path[len] = '\0';
+
+    char *dir = dirname(client_path);
+    if (!dir) {
+        exit(EXIT_FAILURE);
+    }
+
+    char daemon_path[1024];
+    snprintf(daemon_path, sizeof(daemon_path), "%s/wdaemon", dir);
+
+    execv(daemon_path, (char *const[]){ "wdaemon", NULL });
+
+    // If execv returns, something went wrong
+    exit(EXIT_FAILURE);
 }
