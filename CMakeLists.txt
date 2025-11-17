@@ -13,5 +13,6 @@ add_executable(wdaemon src/daemon.c
 add_executable(wdclient src/client.c
         src/client.h
         src/protocol.h
+        src/protocol.c
         src/logging.h
         src/logging.c)

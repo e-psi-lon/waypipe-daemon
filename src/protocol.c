@@ -3,10 +3,13 @@
 #include <string.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <bits/socket.h>
+#include <sys/socket.h>
 
 #include "logging.h"
 
-void get_message_type_string(const message_type_t type, char *buf, size_t buf_size) {
+
+void get_message_type_string(const message_type_t type, char *buf, const size_t buf_size) {
     const char *name = NULL;
     switch (type) {
         case MSG_HELLO: name = "MSG_HELLO"; break;
@@ -35,8 +38,37 @@ message_t *create_message(const message_type_t type, const char *data, const siz
     return msg;
 }
 
-int read_message(int sockfd, message_t **msgs) {
-    return EXIT_SUCCESS;
+message_t *read_message(int sockfd) {
+    message_header_t header;
+    ssize_t length = recv(sockfd, &header, sizeof(message_header_t), MSG_WAITALL);
+    if (length < 0) {
+        perror("recv");
+        return NULL;
+    }
+    if (length < sizeof(message_header_t)){
+        log_err("Incomplete message header");
+        return NULL;
+    }
+    message_t *msg = malloc(sizeof(message_header_t) + header.length);
+    if (!msg) {
+        perror("malloc");
+        return NULL;
+    }
+    msg->header = header;
+    if (header.length > 0) {
+        length = recv(sockfd, msg->data, header.length, MSG_WAITALL);
+        if (length < 0) {
+            perror("recv");
+            free_message(msg);
+            return NULL;
+        }
+        if (length < header.length) {
+            free_message(msg);
+            log_err("Incomplete message data");
+            return NULL;
+        }
+    }
+    return msg;
 }
 
 int send_message(int sockfd, message_t *msg) {

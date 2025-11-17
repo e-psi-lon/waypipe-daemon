@@ -49,8 +49,8 @@ int main(int argc, char *argv[]) {
     }
     log_info("Waypipe client started.");
     // Await for a READY message from the daemon
-    message_t *response = NULL;
-    if (read_message(sockfd, &response) != EXIT_SUCCESS) {
+    message_t *response = read_message(sockfd);
+    if (!response) {
         log_err("Failed to read message from daemon");
         close(sockfd);
         return EXIT_FAILURE;
