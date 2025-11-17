@@ -5,7 +5,7 @@
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define RETRY_COUNT 4
 #define SOCKET_PATH_MAX 108
-#define SOCKET_NAME "waypipe-daemon.sock"
+#define DAEMON_INT_SOCK "waypipe-daemon.sock"
 
 char *get_socket_directory(void);
 char *get_socket_path(void);

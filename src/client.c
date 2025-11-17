@@ -92,7 +92,7 @@ char *get_socket_directory(void) {
 char *get_socket_path(void) {
     static char filepath[SOCKET_PATH_MAX];
     const uid_t uid = getuid();
-    snprintf(filepath, sizeof(filepath), "/run/user/%d/%s", uid, SOCKET_NAME);
+    snprintf(filepath, sizeof(filepath), "/run/user/%d/%s", uid, DAEMON_INT_SOCK);
     return filepath;
 }
 
