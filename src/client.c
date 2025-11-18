@@ -219,6 +219,8 @@ int start_daemon(void) {
         exit(EXIT_FAILURE);
     }
 
+    unsetenv("LD_PRELOAD");
+    unsetenv("LD_LIBRARY_PATH");
     char client_path[1024];
     const ssize_t len = readlink("/proc/self/exe", client_path, sizeof(client_path) - 1);
     if (len < 0) {
