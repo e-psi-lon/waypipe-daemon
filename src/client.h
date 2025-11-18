@@ -12,5 +12,6 @@ char *get_socket_path(void);
 int connect_to_daemon(const char *path);
 int wait_inotify(const char *socket_directory);
 int start_daemon(void);
+_Noreturn void fail(int sockfd, const char *msg, ...);
 
 #endif // CLIENT_H

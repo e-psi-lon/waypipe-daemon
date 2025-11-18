@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <string.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/inotify.h>
@@ -37,15 +38,11 @@ int main(int argc, char *argv[]) {
         // Alert the daemon that a new client has connected
         message_t *hello_msg = create_message(MSG_HELLO, NULL, 0);
         if (!hello_msg) {
-            log_err("Failed to create HELLO message");
-            close(sockfd);
-            return EXIT_FAILURE;
+            fail(sockfd, "Failed to create HELLO message");
         }
         if (send_message(sockfd, hello_msg) != EXIT_SUCCESS) {
-            log_err("Failed to send HELLO message");
             free_message(hello_msg);
-            close(sockfd);
-            return EXIT_FAILURE;
+            fail(sockfd, "Failed to send HELLO message");
         }
         free_message(hello_msg);
     }
@@ -53,17 +50,13 @@ int main(int argc, char *argv[]) {
     // Await for a READY message from the daemon
     message_t *response = read_message(sockfd);
     if (!response) {
-        log_err("Failed to read message from daemon");
-        close(sockfd);
-        return EXIT_FAILURE;
+        fail(sockfd, "Failed to read message from daemon");
     }
     if (response->header.type != MSG_READY) {
         char buf[32];
         get_message_type_string(response->header.type, buf, sizeof(buf));
-        log_err("Unexpected message type from daemon: %s", buf);
         free_message(response);
-        close(sockfd);
-        return EXIT_FAILURE;
+        fail(sockfd, "Unexpected message type from daemon: %s", buf);
     }
     free_message(response);
     log_info("Connected to daemon successfully.");
@@ -78,29 +71,20 @@ int main(int argc, char *argv[]) {
     }
     message_t *command = create_message(MSG_SEND, argument_string_buf, strlen(argument_string_buf));
     if (!command) {
-        log_err("Failed to create command message");
-        close(sockfd);
-        return EXIT_FAILURE;
+        fail(sockfd, "Failed to create command message");
     }
     if (send_message(sockfd, command) != EXIT_SUCCESS){
-        log_err("Failed to send command message");
         free_message(command);
-        close(sockfd);
-        return EXIT_FAILURE;
+        fail(sockfd, "Failed to send command message");
     }
     free_message(command);
     log_info("Command sent to daemon: \"%s\"", argument_string_buf);
     message_t *success_response = read_message(sockfd);
     if (!success_response) {
-        log_err("Failed to read response from daemon");
-        close(sockfd);
-        return EXIT_FAILURE;
+        fail(sockfd, "Failed to read response from daemon");
     }
     if (success_response->header.type != MSG_RESPONSE_OK) {
-        log_err("Daemon didn't receive the command successfully: %s", success_response->data);
-        free_message(success_response);
-        close(sockfd);
-        return EXIT_FAILURE;
+        fail(sockfd, "Daemon didn't receive the command successfully: %s", success_response->data);
     }
     log_info("Command received by the daemon successfully.");
     free_message(success_response);
@@ -134,6 +118,17 @@ char *get_socket_path(void) {
     log_debug("Socket path: %s", filepath);
     return filepath;
 }
+
+_Noreturn void fail(const int sockfd, const char *msg, ...) {
+    va_list ap;
+    va_start(ap, msg);
+    vlog_err(msg, ap);
+    va_end(ap);
+    close(sockfd);
+    closelog();
+    exit(EXIT_FAILURE);
+};
+
 
 int connect_to_daemon(const char *path) {
     const int sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
