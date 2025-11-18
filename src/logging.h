@@ -1,5 +1,6 @@
 #ifndef LOGGING_H
 #define LOGGING_H
+#include <stdarg.h>
 #include <syslog.h>
 
 /**
@@ -12,6 +13,7 @@
  *        log_debug("Debug info");
  */
 
+void vlog_impl(int level, const char *fmt, va_list args);
 void log_impl(int level, const char *fmt, ...);
 
 /**
@@ -22,6 +24,10 @@ void log_impl(int level, const char *fmt, ...);
 #define log_err(fmt, ...) log_impl(LOG_ERR, fmt, ##__VA_ARGS__)
 #define log_warning(fmt, ...) log_impl(LOG_WARNING, fmt, ##__VA_ARGS__)
 #define log_debug(fmt, ...) log_impl(LOG_DEBUG, fmt, ##__VA_ARGS__)
+#define vlog_info(fmt, args) vlog_impl(LOG_INFO, fmt, args)
+#define vlog_err(fmt, args) vlog_impl(LOG_ERR, fmt, args)
+#define vlog_warning(fmt, args) vlog_impl(LOG_WARNING, fmt, args)
+#define vlog_debug(fmt, args) vlog_impl(LOG_DEBUG, fmt, args)
 
 #endif // LOGGING_H
 

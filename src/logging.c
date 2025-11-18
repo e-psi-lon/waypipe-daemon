@@ -5,16 +5,21 @@
 
 static bool g_logging_initialized = false;
 
-/**
- * Single logging function - called by macros
- */
-void log_impl(int level, const char *fmt, ...) {
+
+void vlog_impl(const int level, const char *fmt, va_list args) {
     if (!g_logging_initialized) {
         openlog("waypipe-client", LOG_PID | LOG_PERROR, LOG_USER);
         g_logging_initialized = true;
     }
+    vsyslog(level, fmt, args);
+}
+
+
+void log_impl(const int level, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    vsyslog(level, fmt, args);
+    vlog_impl(level, fmt, args);
     va_end(args);
 }
+
+
