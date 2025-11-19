@@ -61,14 +61,18 @@ int main(int argc, char *argv[]) {
     free_message(response);
     log_info("Connected to daemon successfully.");
 
-    char argument_string_buf[1024];
+    char argument_string_buf[4096];
     argument_string_buf[0] = '\0';
+    size_t used = 0;
+    int ret = 0;
     for (int i = 1; i < argc; i++) {
-        strncat(argument_string_buf, argv[i], sizeof(argument_string_buf) - strlen(argument_string_buf) - 1);
-        if (i < argc - 1) {
-            strncat(argument_string_buf, " ", sizeof(argument_string_buf) - strlen(argument_string_buf) - 1);
-        }
+        ret = snprintf(argument_string_buf + used, sizeof(argument_string_buf) - used, "%s%s", argv[i], (i < argc - 1) ? " " : "");
+
+        if (ret < 0 || (size_t)ret >= sizeof(argument_string_buf) - used)
+            fail(sockfd, "Command line arguments too long");
+        used += ret;
     }
+
     message_t *command = create_message(MSG_SEND, argument_string_buf, strlen(argument_string_buf));
     if (!command) {
         fail(sockfd, "Failed to create command message");

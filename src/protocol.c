@@ -37,7 +37,7 @@ message_t *create_message(const message_type_t type, const char *data, const siz
     return msg;
 }
 
-message_t *read_message(int sockfd) {
+message_t *read_message(const int sockfd) {
     message_header_t header;
     ssize_t length = recv(sockfd, &header, sizeof(message_header_t), MSG_WAITALL);
     if (length < 0) {
