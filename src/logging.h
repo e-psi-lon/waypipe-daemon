@@ -3,6 +3,15 @@
 #include <stdarg.h>
 #include <syslog.h>
 
+#ifdef WAYPIPEDAEMON_DAEMON_H
+    #define FACILITY LOG_DAEMON
+#elif defined(WAYPIPEDAEMON_CLIENT_H)
+    #define FACILITY LOG_USER
+#else
+    #define FACILITY LOG_LOCAL0
+#endif
+
+
 /**
  * Logging utility using syslog.
  * Auto-initializes on first use.
@@ -12,6 +21,8 @@
  *        log_warning("Warning");
  *        log_debug("Debug info");
  */
+
+void openlog_name(const char *name);
 
 void vlog_impl(int level, const char *fmt, va_list args);
 void log_impl(int level, const char *fmt, ...);

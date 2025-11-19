@@ -1,17 +1,25 @@
 #include "logging.h"
 #include <syslog.h>
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 
-static bool g_logging_initialized = false;
+static atomic_bool g_logging_initialized = ATOMIC_VAR_INIT(false);
 
+
+void openlog_name(const char *name) {
+    openlog(name, LOG_PID | LOG_PERROR, FACILITY);
+}
 
 void vlog_impl(const int level, const char *fmt, va_list args) {
-    if (!g_logging_initialized) {
-        openlog("waypipe-client", LOG_PID | LOG_PERROR, LOG_USER);
-        g_logging_initialized = true;
+    bool expected = false;
+    if (atomic_compare_exchange_strong(&g_logging_initialized, &expected, true)) {
+        openlog_name("waypipe");
     }
-    vsyslog(level, fmt, args);
+    va_list args_copy;
+    va_copy(args_copy, args);
+    vsyslog(level, fmt, args_copy);
+    va_end(args_copy);
 }
 
 
