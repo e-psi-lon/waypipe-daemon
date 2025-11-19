@@ -14,7 +14,7 @@
 #include "protocol.h"
 #include "logging.h"
 
-int main(int argc, char *argv[]) {
+int main(const int argc, char *argv[]) {
     const char *socket_directory = get_socket_directory();
     const char *socket_path = get_socket_path();
     int sockfd = connect_to_daemon(socket_path);
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
         }
         free_message(hello_msg);
     }
-    log_info("Waypipe client started.");
+    log_info("Waypipe daemon's client started");
     // Await for a READY message from the daemon
     message_t *response = read_message(sockfd);
     if (!response) {
@@ -207,8 +207,13 @@ int start_daemon(void) {
     }
 
     if (pid > 0) {
+        log_debug("Parent process: daemon forked with PID %d", pid);
         return EXIT_SUCCESS;
     }
+
+    // Initialize logging in child process BEFORE redirecting streams
+    openlog_name("waypipe-daemon");
+    log_debug("Child process: starting daemon initialization");
 
     const int devnull = open("/dev/null", O_RDWR);
     if (devnull < 0) {
@@ -223,6 +228,7 @@ int start_daemon(void) {
     }
 
     if (setsid() < 0) {
+        log_err("Failed to create new session");
         exit(EXIT_FAILURE);
     }
 
@@ -231,18 +237,24 @@ int start_daemon(void) {
     char client_path[1024];
     const ssize_t len = readlink("/proc/self/exe", client_path, sizeof(client_path) - 1);
     if (len < 0) {
+        log_err("Failed to resolve client executable path");
         exit(EXIT_FAILURE);
     }
     client_path[len] = '\0';
+    log_debug("Resolved client executable path: %s", client_path);
 
     char *dir = dirname(client_path);
     if (!dir) {
+        log_err("Failed to extract directory from path");
         exit(EXIT_FAILURE);
     }
+    log_debug("Extracted directory: %s", dir);
 
     char daemon_path[1024];
     snprintf(daemon_path, sizeof(daemon_path), "%s/wdaemon", dir);
+    log_debug("Daemon executable path: %s", daemon_path);
 
+    log_debug("Executing daemon: %s", daemon_path);
     execv(daemon_path, (char *const[]){ "wdaemon", NULL });
 
     // If execv returns, something went wrong
