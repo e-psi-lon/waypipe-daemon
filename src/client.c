@@ -128,7 +128,10 @@ _Noreturn void fail(const int sockfd, const char *msg, ...) {
     va_start(ap, msg);
     vlog_err(msg, ap);
     va_end(ap);
-    close(sockfd);
+    if (sockfd >= 0)
+        close(sockfd);
+    else
+        log_err("Attempted to close an invalid socket descriptor.");
     closelog();
     exit(EXIT_FAILURE);
 };
