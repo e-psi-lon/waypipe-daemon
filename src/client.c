@@ -17,6 +17,10 @@
 int main(const int argc, char *argv[]) {
     const char *socket_directory = get_socket_directory();
     const char *socket_path = get_socket_path();
+    if (!socket_path) {
+        log_err("Failed to get socket path");
+        return EXIT_FAILURE;
+    }
     int sockfd = connect_to_daemon(socket_path);
 
     if (sockfd < 0) {
@@ -98,27 +102,40 @@ int main(const int argc, char *argv[]) {
 }
 
 /**
- * get_socket_directory - Get the socket directory path for the current user.
+ * Get the socket directory path for the current user.
+ * Uses XDG_RUNTIME_DIR environment variable to get the said directory
  *
  * @return The socket directory path for the current user.
  */
 char *get_socket_directory(void) {
-    const uid_t uid = getuid();
     static char path[SOCKET_PATH_MAX];
-    snprintf(path, sizeof(path), "/run/user/%d/", uid);
+    const char *xdg_runtime_dir = getenv("XDG_RUNTIME_DIR");
+    if (xdg_runtime_dir) {
+        if (strlcpy(path, xdg_runtime_dir, sizeof(path)) >= sizeof(path)) {
+            return NULL;
+        }
+    } else return NULL;
     return path;
 }
 
 /**
- * get_socket_path - Get the socket file path for the current user.
+ * Get the socket file path for the current user.
  *
  *
  * @return The socket file path for the current user
  */
 char *get_socket_path(void) {
     static char filepath[SOCKET_PATH_MAX];
-    const uid_t uid = getuid();
-    snprintf(filepath, sizeof(filepath), "/run/user/%d/%s", uid, DAEMON_INT_SOCK);
+    const char *dir = get_socket_directory();
+    if (!dir) {
+        log_err("XDG_RUNTIME_DIR not set");
+        return NULL;
+    }
+    const int written = snprintf(filepath, sizeof(filepath), "%s/%s", dir, DAEMON_INT_SOCK);
+    if (written < 0 || (size_t)written >= sizeof(filepath)) {
+        log_err("Socket path exceeds maximum length");
+        return NULL;
+    }
     log_debug("Socket path: %s", filepath);
     return filepath;
 }
@@ -211,7 +228,7 @@ int start_daemon(void) {
         return EXIT_SUCCESS;
     }
 
-    // Initialize logging in child process BEFORE redirecting streams
+    // Initialize logging
     openlog_name("waypipe-daemon");
     log_debug("Child process: starting daemon initialization");
 
