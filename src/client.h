@@ -4,8 +4,9 @@
 
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define RETRY_COUNT 4
-#define SOCKET_PATH_MAX (sizeof(struct sockaddr_un))
+#define SOCKET_PATH_MAX (sizeof(struct sockaddr_un) - sizeof(sa_family_t))
 #define DAEMON_INT_SOCK "waypipe-daemon.sock"
+#define STANDARD_BUFFER_SIZE 1024
 
 char *get_socket_directory(void);
 char *get_socket_path(void);

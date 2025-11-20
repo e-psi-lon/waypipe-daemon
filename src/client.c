@@ -89,9 +89,11 @@ int main(const int argc, char *argv[]) {
     log_info("Command sent to daemon: \"%s\"", argument_string_buf);
     message_t *success_response = read_message(sockfd);
     if (!success_response) {
+        free_message(success_response);
         fail(sockfd, "Failed to read response from daemon");
     }
     if (success_response->header.type != MSG_RESPONSE_OK) {
+        free_message(success_response);
         fail(sockfd, "Daemon didn't receive the command successfully: %s", success_response->data);
     }
     log_info("Command received by the daemon successfully.");
@@ -160,9 +162,10 @@ int connect_to_daemon(const char *path) {
         perror("socket");
         return -1;
     }
-    struct sockaddr_un addr;
+    struct sockaddr_un addr = {0};
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
+    strncpy(addr.sun_path, path, SOCKET_PATH_MAX - 1);
+    addr.sun_path[SOCKET_PATH_MAX - 1] = '\0';
     if (connect(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("connect");
         close(sockfd);
@@ -251,7 +254,7 @@ int start_daemon(void) {
 
     unsetenv("LD_PRELOAD");
     unsetenv("LD_LIBRARY_PATH");
-    char client_path[1024];
+    char client_path[STANDARD_BUFFER_SIZE];
     const ssize_t len = readlink("/proc/self/exe", client_path, sizeof(client_path) - 1);
     if (len < 0) {
         log_err("Failed to resolve client executable path");
@@ -260,14 +263,16 @@ int start_daemon(void) {
     client_path[len] = '\0';
     log_debug("Resolved client executable path: %s", client_path);
 
-    char *dir = dirname(client_path);
+    char path_copy[STANDARD_BUFFER_SIZE];
+    strncpy(path_copy, client_path, sizeof(path_copy));
+    char *dir = dirname(path_copy);
     if (!dir) {
         log_err("Failed to extract directory from path");
         exit(EXIT_FAILURE);
     }
     log_debug("Extracted directory: %s", dir);
 
-    char daemon_path[1024];
+    char daemon_path[STANDARD_BUFFER_SIZE];
     snprintf(daemon_path, sizeof(daemon_path), "%s/wdaemon", dir);
     log_debug("Daemon executable path: %s", daemon_path);
 
