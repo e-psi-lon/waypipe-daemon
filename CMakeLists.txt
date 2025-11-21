@@ -9,6 +9,8 @@ add_library(wdcommon OBJECT
         src/protocol.c
         src/logging.h
         src/logging.c
+        src/common.c
+        src/common.h
 )
 
 add_executable(wdaemon src/daemon.c

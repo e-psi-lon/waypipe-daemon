@@ -4,15 +4,12 @@
 
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define RETRY_COUNT 4
-#define SOCKET_PATH_MAX (sizeof(struct sockaddr_un) - sizeof(sa_family_t))
-#define DAEMON_INT_SOCK "waypipe-daemon.sock"
-#define STANDARD_BUFFER_SIZE 1024
 
 char *get_socket_directory(void);
 char *get_socket_path(void);
 int connect_to_daemon(const char *path);
 int wait_inotify(const char *socket_directory);
 int start_daemon(void);
-_Noreturn void fail(int sockfd, const char *msg, ...);
+int fail(int sockfd, const char *msg, ...);
 
 #endif // CLIENT_H

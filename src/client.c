@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <libgen.h>
 #include "client.h"
+#include "common.h"
 #include "protocol.h"
 #include "logging.h"
 
@@ -21,7 +22,7 @@ int main(const int argc, char *argv[]) {
         log_err("Failed to get socket path");
         return EXIT_FAILURE;
     }
-    int sockfd = connect_to_daemon(socket_path);
+    auto_close int sockfd = connect_to_daemon(socket_path);
 
     if (sockfd < 0) {
         log_info("Daemon not running. Starting daemon...");
@@ -40,32 +41,28 @@ int main(const int argc, char *argv[]) {
     } else {
         log_info("Connecting to existing daemon...");
         // Alert the daemon that a new client has connected
-        message_t *hello_msg = create_message(MSG_HELLO, NULL, 0);
+        auto_free_message message_t *hello_msg = create_message(MSG_HELLO, NULL, 0);
         if (!hello_msg) {
-            fail(sockfd, "Failed to create HELLO message");
+            return fail(sockfd, "Failed to create HELLO message");
         }
         if (send_message(sockfd, hello_msg) != EXIT_SUCCESS) {
-            free_message(hello_msg);
-            fail(sockfd, "Failed to send HELLO message");
+            return fail(sockfd, "Failed to send HELLO message");
         }
-        free_message(hello_msg);
     }
     log_info("Waypipe daemon's client started");
     // Await for a READY message from the daemon
-    message_t *response = read_message(sockfd);
+    auto_free_message message_t *response = read_message(sockfd);
     if (!response) {
-        fail(sockfd, "Failed to read message from daemon");
+        return fail(sockfd, "Failed to read message from daemon");
     }
     if (response->header.type != MSG_READY) {
         char buf[32];
         get_message_type_string(response->header.type, buf, sizeof(buf));
-        free_message(response);
-        fail(sockfd, "Unexpected message type from daemon: %s", buf);
+        return fail(sockfd, "Unexpected message type from daemon: %s", buf);
     }
-    free_message(response);
     log_info("Connected to daemon successfully.");
 
-    char argument_string_buf[4096];
+    char argument_string_buf[STANDARD_BUFFER_SIZE*4];
     argument_string_buf[0] = '\0';
     size_t used = 0;
     int ret = 0;
@@ -73,31 +70,27 @@ int main(const int argc, char *argv[]) {
         ret = snprintf(argument_string_buf + used, sizeof(argument_string_buf) - used, "%s%s", argv[i], (i < argc - 1) ? " " : "");
 
         if (ret < 0 || (size_t)ret >= sizeof(argument_string_buf) - used)
-            fail(sockfd, "Command line arguments too long");
+            return fail(sockfd, "Command line arguments too long");
         used += ret;
     }
 
-    message_t *command = create_message(MSG_SEND, argument_string_buf, strlen(argument_string_buf));
+    auto_free_message message_t *command = create_message(MSG_SEND, argument_string_buf, strlen(argument_string_buf));
     if (!command) {
-        fail(sockfd, "Failed to create command message");
+        return fail(sockfd, "Failed to create command message");
     }
     if (send_message(sockfd, command) != EXIT_SUCCESS){
-        free_message(command);
-        fail(sockfd, "Failed to send command message");
+        return fail(sockfd, "Failed to send command message");
     }
-    free_message(command);
     log_info("Command sent to daemon: \"%s\"", argument_string_buf);
-    message_t *success_response = read_message(sockfd);
+    auto_free_message message_t *success_response = read_message(sockfd);
     if (!success_response) {
-        free_message(success_response);
-        fail(sockfd, "Failed to read response from daemon");
+        return fail(sockfd, "Failed to read rauto_free_message esponse from daemon");
     }
     if (success_response->header.type != MSG_RESPONSE_OK) {
         free_message(success_response);
-        fail(sockfd, "Daemon didn't receive the command successfully: %s", success_response->data);
+        return fail(sockfd, "Daemon didn't receive the command successfully: %s", success_response->data);
     }
     log_info("Command received by the daemon successfully.");
-    free_message(success_response);
     close(sockfd);
     closelog();
     return EXIT_SUCCESS;
@@ -113,7 +106,7 @@ char *get_socket_directory(void) {
     static char path[SOCKET_PATH_MAX];
     const char *xdg_runtime_dir = getenv("XDG_RUNTIME_DIR");
     if (xdg_runtime_dir) {
-        if (strlcpy(path, xdg_runtime_dir, sizeof(path)) >= sizeof(path)) {
+        if (snprintf(path, sizeof(path), "%s", xdg_runtime_dir) >= (int)sizeof(path)) {
             return NULL;
         }
     } else return NULL;
@@ -142,7 +135,7 @@ char *get_socket_path(void) {
     return filepath;
 }
 
-_Noreturn void fail(const int sockfd, const char *msg, ...) {
+int fail(const int sockfd, const char *msg, ...) {
     va_list ap;
     va_start(ap, msg);
     vlog_err(msg, ap);
@@ -152,7 +145,7 @@ _Noreturn void fail(const int sockfd, const char *msg, ...) {
     else
         log_err("Attempted to close an invalid socket descriptor.");
     closelog();
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
 };
 
 
