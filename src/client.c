@@ -77,7 +77,7 @@ int main(const int argc, char *argv[]) {
         used += ret;
     }
 
-    auto_free_message message_t *command = create_message(MSG_SEND, argument_string_buf, strlen(argument_string_buf));
+    auto_free_message message_t *command = create_message(MSG_SEND, argument_string_buf, STRLENGTH_WITH_NULL(argument_string_buf));
     if (!command) {
         return fail("Failed to create command message");
     }

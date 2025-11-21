@@ -26,14 +26,15 @@ void get_message_type_string(const message_type_t type, char *buf, const size_t 
 }
 
 message_t *create_message(const message_type_t type, const char *data, const size_t length) {
+    if (!!data != (length > 0)) return NULL;
+    if (length > MAX_MESSAGE_SIZE) return NULL;
+    if (data && data[length - 1] != '\0') return NULL;
     message_t *msg = malloc(sizeof(message_header_t) + length);
     if (!msg) return NULL;
     msg->header.type = type;
     msg->header.length = length;
-    if (data && length > 0) {
-        memcpy(msg->data, data, length);
-    }
-    log_debug("Allocating message with type: %", PRIu32, msg->header.type);
+    if (data) memcpy(msg->data, data, length);
+    log_debug("Allocating message with type: %" PRIu32, msg->header.type);
     return msg;
 }
 
@@ -55,6 +56,11 @@ message_t *read_message(const int sockfd) {
     }
     msg->header = header;
     if (header.length > 0) {
+        if (header.length > MAX_MESSAGE_SIZE) {
+            free_message(msg);
+            log_err("Message data received exceeds maximum size");
+            return NULL;
+        }
         length = recv(sockfd, msg->data, header.length, MSG_WAITALL);
         if (length < 0) {
             perror("recv");

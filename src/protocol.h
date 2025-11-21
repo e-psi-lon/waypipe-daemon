@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define MAX_MESSAGE_SIZE (16*1024*1024)
+
 typedef struct {
     uint32_t type;
     uint32_t length;
