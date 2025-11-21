@@ -49,6 +49,10 @@ message_t *read_message(const int sockfd) {
         log_err("Incomplete message header");
         return NULL;
     }
+    if (header.length > MAX_MESSAGE_SIZE) {
+        log_err("Message data received exceeds maximum size");
+        return NULL;
+    }
     message_t *msg = malloc(sizeof(message_header_t) + header.length);
     if (!msg) {
         perror("malloc");
@@ -56,11 +60,6 @@ message_t *read_message(const int sockfd) {
     }
     msg->header = header;
     if (header.length > 0) {
-        if (header.length > MAX_MESSAGE_SIZE) {
-            free_message(msg);
-            log_err("Message data received exceeds maximum size");
-            return NULL;
-        }
         length = recv(sockfd, msg->data, header.length, MSG_WAITALL);
         if (length < 0) {
             perror("recv");
