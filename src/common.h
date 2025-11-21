@@ -1,5 +1,6 @@
 #ifndef WAYPIPEDAEMON_COMMON_H
 #define WAYPIPEDAEMON_COMMON_H
+#include <sys/un.h>
 #include "protocol.h"
 
 #define SOCKET_PATH_MAX (sizeof(struct sockaddr_un) - sizeof(sa_family_t))
@@ -16,5 +17,24 @@
     #error "This code requires GCC or Clang"
 #endif
 
+/**
+ * Get the socket directory path for the current user.
+ * Uses XDG_RUNTIME_DIR environment variable to get the said directory
+ *
+ * @param buffer Buffer to store the directory path
+ * @param size Size of the buffer
+ * @return EXIT_SUCCESS on success, EXIT_FAILURE on failure
+ */
+int get_socket_directory(char *buffer, size_t size);
+
+/**
+ * Get the socket file path for the current user.
+ *
+ * @param buffer Buffer to store the socket file path
+ * @param size Size of the buffer
+ * @param dir Directory path
+ * @return EXIT_SUCCESS on success, EXIT_FAILURE on failure
+ */
+int get_socket_path(char *buffer, size_t size, const char *dir);
 
 #endif //WAYPIPEDAEMON_COMMON_H

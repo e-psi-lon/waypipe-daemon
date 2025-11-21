@@ -16,8 +16,8 @@
 #include "logging.h"
 
 int main(const int argc, char *argv[]) {
-    const char *socket_directory = get_socket_directory();
-    const char *socket_path = get_socket_path();
+    const char *socket_directory = client_get_socket_directory();
+    const char *socket_path = client_get_socket_path();
     if (!socket_path) {
         log_err("Failed to get socket path");
         return EXIT_FAILURE;
@@ -96,43 +96,20 @@ int main(const int argc, char *argv[]) {
     return EXIT_SUCCESS;
 }
 
-/**
- * Get the socket directory path for the current user.
- * Uses XDG_RUNTIME_DIR environment variable to get the said directory
- *
- * @return The socket directory path for the current user.
- */
-char *get_socket_directory(void) {
-    static char path[SOCKET_PATH_MAX];
-    const char *xdg_runtime_dir = getenv("XDG_RUNTIME_DIR");
-    if (xdg_runtime_dir) {
-        if (snprintf(path, sizeof(path), "%s", xdg_runtime_dir) >= (int)sizeof(path)) {
-            return NULL;
-        }
-    } else return NULL;
-    return path;
+char *client_get_socket_directory(void) {
+    static char socket_directory[SOCKET_PATH_MAX];
+    if (get_socket_directory(socket_directory, sizeof(socket_directory)) != EXIT_SUCCESS)
+        return NULL;
+    return socket_directory;
 }
 
-/**
- * Get the socket file path for the current user.
- *
- *
- * @return The socket file path for the current user
- */
-char *get_socket_path(void) {
-    static char filepath[SOCKET_PATH_MAX];
-    const char *dir = get_socket_directory();
-    if (!dir) {
-        log_err("XDG_RUNTIME_DIR not set");
+char *client_get_socket_path(void) {
+    static char socket_path[SOCKET_PATH_MAX];
+    const char *socket_directory = client_get_socket_directory();
+    if (!socket_directory) return NULL;
+    if (get_socket_path(socket_path, sizeof(socket_path), socket_directory) != EXIT_SUCCESS)
         return NULL;
-    }
-    const int written = snprintf(filepath, sizeof(filepath), "%s/%s", dir, DAEMON_INT_SOCK);
-    if (written < 0 || (size_t)written >= sizeof(filepath)) {
-        log_err("Socket path exceeds maximum length");
-        return NULL;
-    }
-    log_debug("Socket path: %s", filepath);
-    return filepath;
+    return socket_path;
 }
 
 int fail(const int sockfd, const char *msg, ...) {
