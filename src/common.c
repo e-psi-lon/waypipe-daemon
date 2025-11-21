@@ -20,10 +20,9 @@ void free_message_ptr(message_t **msg) {
 
 int get_socket_directory(char *buffer, const size_t size) {
     const char *xdg_runtime_dir = getenv("XDG_RUNTIME_DIR");
-    if (xdg_runtime_dir) {
-        if (snprintf(buffer, size, "%s", xdg_runtime_dir) >= (int)size) {
+    if (xdg_runtime_dir && xdg_runtime_dir[0] != '\0') {
+        if (snprintf(buffer, size, "%s", xdg_runtime_dir) >= (int)size)
             return EXIT_FAILURE;
-        }
     } else return EXIT_FAILURE;
     return EXIT_SUCCESS;
 }

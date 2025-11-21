@@ -4,7 +4,8 @@
 #include <string.h>
 #include "protocol.h"
 
-#define SOCKET_PATH_MAX (sizeof(struct sockaddr_un) - sizeof(sa_family_t))
+
+#define SOCKET_PATH_MAX (sizeof(((struct sockaddr_un*)0)->sun_path))
 #define DAEMON_INT_SOCK "waypipe-daemon.sock"
 #define STANDARD_BUFFER_SIZE 1024
 #define STRLENGTH_WITH_NULL(str) (strlen(str) + 1)

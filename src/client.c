@@ -30,6 +30,7 @@ int main(const int argc, char *argv[]) {
         start_daemon();
         int status;
         // The socket might have created the socket too fast
+        // Ensure it doesn't exist before waiting for inotify
         if (access(socket_path, F_OK)) status = wait_inotify(socket_directory);
         else status = EXIT_SUCCESS;
         if (status != EXIT_SUCCESS) {
@@ -229,7 +230,7 @@ int start_daemon(void) {
     log_debug("Resolved client executable path: %s", client_path);
 
     char path_copy[STANDARD_BUFFER_SIZE];
-    strncpy(path_copy, client_path, sizeof(path_copy));
+    snprintf(path_copy, sizeof(path_copy), "%s", client_path);
     char *dir = dirname(path_copy);
     if (!dir) {
         log_err("Failed to extract directory from path");
@@ -243,7 +244,7 @@ int start_daemon(void) {
 
     log_debug("Executing daemon: %s", daemon_path);
     execv(daemon_path, (char *const[]){ "wdaemon", NULL });
-
     // If execv returns, something went wrong
+    perror("execv");
     exit(EXIT_FAILURE);
 }
