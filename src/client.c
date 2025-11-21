@@ -28,7 +28,10 @@ int main(const int argc, char *argv[]) {
         log_info("Daemon not running. Starting daemon...");
         // Starts the daemon if not running
         start_daemon();
-        const int status = wait_inotify(socket_directory);
+        int status;
+        // The socket might have created the socket too fast
+        if (access(socket_path, F_OK)) status = wait_inotify(socket_directory);
+        else status = EXIT_SUCCESS;
         if (status != EXIT_SUCCESS) {
             return EXIT_FAILURE;
         }
@@ -84,14 +87,13 @@ int main(const int argc, char *argv[]) {
     log_info("Command sent to daemon: \"%s\"", argument_string_buf);
     auto_free_message message_t *success_response = read_message(sockfd);
     if (!success_response) {
-        return fail("Failed to read rauto_free_message esponse from daemon");
+        return fail("Failed to read success response from daemon");
     }
     if (success_response->header.type != MSG_RESPONSE_OK) {
-        free_message(success_response);
-        return fail("Daemon didn't receive the command successfully: %s", success_response->data);
+        return fail("Daemon didn't receive the command successfully: %s",
+                    success_response->data[0] ? success_response->data : "(no message in error response)");
     }
     log_info("Command received by the daemon successfully.");
-    close(sockfd);
     closelog();
     return EXIT_SUCCESS;
 }
@@ -141,7 +143,7 @@ int connect_to_daemon(const char *path) {
 }
 
 int wait_inotify(const char *socket_directory) {
-    const int inotify_fd = inotify_init1(IN_CLOEXEC);
+    const auto_close int inotify_fd = inotify_init1(IN_CLOEXEC);
     if (inotify_fd < 0) {
         perror("inotify_init1");
         return EXIT_FAILURE;
@@ -150,7 +152,6 @@ int wait_inotify(const char *socket_directory) {
     const int watch_fd = inotify_add_watch(inotify_fd, socket_directory, IN_CREATE);
     if (watch_fd < 0) {
         perror("inotify_add_watch");
-        close(inotify_fd);
         return EXIT_FAILURE;
     }
     char event_buf[EVENT_SIZE*64];
@@ -160,7 +161,6 @@ int wait_inotify(const char *socket_directory) {
         if (length < 0) {
             perror("read");
             inotify_rm_watch(inotify_fd, watch_fd);
-            close(inotify_fd);
             return EXIT_FAILURE;
         }
         for (size_t i = 0; i < length;) {
@@ -174,7 +174,6 @@ int wait_inotify(const char *socket_directory) {
         }
     }
     inotify_rm_watch(inotify_fd, watch_fd);
-    close(inotify_fd);
     if (!socket_found) {
         log_err("Daemon socket not found after %d retries.", RETRY_COUNT);
         return EXIT_FAILURE;
