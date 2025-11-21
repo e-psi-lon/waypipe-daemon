@@ -8,7 +8,7 @@
 int connect_to_daemon(const char *path);
 int wait_inotify(const char *socket_directory);
 int start_daemon(void);
-int fail(int sockfd, const char *msg, ...);
+int fail(const char *msg, ...);
 char *client_get_socket_path(void);
 char *client_get_socket_directory(void);
 

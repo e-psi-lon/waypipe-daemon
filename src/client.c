@@ -43,22 +43,22 @@ int main(const int argc, char *argv[]) {
         // Alert the daemon that a new client has connected
         auto_free_message message_t *hello_msg = create_message(MSG_HELLO, NULL, 0);
         if (!hello_msg) {
-            return fail(sockfd, "Failed to create HELLO message");
+            return fail("Failed to create HELLO message");
         }
         if (send_message(sockfd, hello_msg) != EXIT_SUCCESS) {
-            return fail(sockfd, "Failed to send HELLO message");
+            return fail("Failed to send HELLO message");
         }
     }
     log_info("Waypipe daemon's client started");
     // Await for a READY message from the daemon
     auto_free_message message_t *response = read_message(sockfd);
     if (!response) {
-        return fail(sockfd, "Failed to read message from daemon");
+        return fail("Failed to read message from daemon");
     }
     if (response->header.type != MSG_READY) {
         char buf[32];
         get_message_type_string(response->header.type, buf, sizeof(buf));
-        return fail(sockfd, "Unexpected message type from daemon: %s", buf);
+        return fail("Unexpected message type from daemon: %s", buf);
     }
     log_info("Connected to daemon successfully.");
 
@@ -70,25 +70,25 @@ int main(const int argc, char *argv[]) {
         ret = snprintf(argument_string_buf + used, sizeof(argument_string_buf) - used, "%s%s", argv[i], (i < argc - 1) ? " " : "");
 
         if (ret < 0 || (size_t)ret >= sizeof(argument_string_buf) - used)
-            return fail(sockfd, "Command line arguments too long");
+            return fail("Command line arguments too long");
         used += ret;
     }
 
     auto_free_message message_t *command = create_message(MSG_SEND, argument_string_buf, strlen(argument_string_buf));
     if (!command) {
-        return fail(sockfd, "Failed to create command message");
+        return fail("Failed to create command message");
     }
     if (send_message(sockfd, command) != EXIT_SUCCESS){
-        return fail(sockfd, "Failed to send command message");
+        return fail("Failed to send command message");
     }
     log_info("Command sent to daemon: \"%s\"", argument_string_buf);
     auto_free_message message_t *success_response = read_message(sockfd);
     if (!success_response) {
-        return fail(sockfd, "Failed to read rauto_free_message esponse from daemon");
+        return fail("Failed to read rauto_free_message esponse from daemon");
     }
     if (success_response->header.type != MSG_RESPONSE_OK) {
         free_message(success_response);
-        return fail(sockfd, "Daemon didn't receive the command successfully: %s", success_response->data);
+        return fail("Daemon didn't receive the command successfully: %s", success_response->data);
     }
     log_info("Command received by the daemon successfully.");
     close(sockfd);
@@ -112,15 +112,11 @@ char *client_get_socket_path(void) {
     return socket_path;
 }
 
-int fail(const int sockfd, const char *msg, ...) {
+int fail(const char *msg, ...) {
     va_list ap;
     va_start(ap, msg);
     vlog_err(msg, ap);
     va_end(ap);
-    if (sockfd >= 0)
-        close(sockfd);
-    else
-        log_err("Attempted to close an invalid socket descriptor.");
     closelog();
     return EXIT_FAILURE;
 };
