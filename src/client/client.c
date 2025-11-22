@@ -11,9 +11,9 @@
 #include <fcntl.h>
 #include <libgen.h>
 #include "client.h"
-#include "common.h"
-#include "protocol.h"
-#include "logging.h"
+#include "../common/common.h"
+#include "../common/protocol.h"
+#include "../common/logging.h"
 
 int main(const int argc, char *argv[]) {
     const char *socket_directory = client_get_socket_directory();

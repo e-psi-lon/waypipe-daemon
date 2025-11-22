@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <sys/syslog.h>
 
-#include "logging.h"
+#include "../common/logging.h"
 
 int main(void) {
     openlog_name("waypipe-daemon");
