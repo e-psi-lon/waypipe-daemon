@@ -4,13 +4,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/inotify.h>
+#include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <libgen.h>
 #include "client.h"
+#include <limits.h>
 #include "../common/common.h"
 #include "../common/protocol.h"
 #include "../common/logging.h"
@@ -19,8 +22,7 @@ int main(const int argc, char *argv[]) {
     const char *socket_directory = client_get_socket_directory();
     const char *socket_path = client_get_socket_path();
     if (!socket_path) {
-        log_err("Failed to get socket path");
-        return EXIT_FAILURE;
+        return fail("Failed to get socket path");
     }
     auto_close int sockfd = connect_to_daemon(socket_path);
 
@@ -34,12 +36,24 @@ int main(const int argc, char *argv[]) {
         if (access(socket_path, F_OK)) status = wait_inotify(socket_directory);
         else status = EXIT_SUCCESS;
         if (status != EXIT_SUCCESS) {
-            return EXIT_FAILURE;
+            return fail("Failed to check for daemon socket");
         }
-        sockfd = connect_to_daemon(socket_path);
+        int attempts = 0;
+        const int max_attempts = 5;
+        int delay_ms = 50;
+
+        while (attempts < max_attempts) {
+            sockfd = connect_to_daemon(socket_path);
+            if (sockfd >= 0) break;
+
+            log_debug("Connection attempt %d failed, retrying in %dms",
+                      attempts + 1, delay_ms);
+            usleep(delay_ms * 1000);
+            delay_ms *= 2;
+            attempts++;
+        }
         if (sockfd < 0) {
-            log_err("Daemon socket not found after restart");
-            return EXIT_FAILURE;
+            return fail("Daemon socket not found after restart");
         }
         log_info("Daemon started.");
     } else {
@@ -92,7 +106,7 @@ int main(const int argc, char *argv[]) {
     }
     if (success_response->header.type != MSG_RESPONSE_OK) {
         return fail("Daemon didn't receive the command successfully: %s",
-                    success_response->data[0] ? success_response->data : "(no message in error response)");
+                    success_response->header.length > 0 ? success_response->data : "(no message in error response)");
     }
     log_info("Command received by the daemon successfully.");
     closelog();
@@ -158,6 +172,19 @@ int wait_inotify(const char *socket_directory) {
     char event_buf[EVENT_SIZE*64];
     bool socket_found = false;
     for (int retry = 0; retry < RETRY_COUNT && !socket_found; retry++) {
+        struct pollfd pfd = {
+            .fd = inotify_fd,
+            .events = POLLIN
+        };
+        const int poll_ret = poll(&pfd, 1, 1000);
+        if (poll_ret < 0) {
+            perror("poll");
+            continue;
+        }
+        if (poll_ret == 0) {
+            log_debug("Inotify poll timeout, retrying... (%d/%d)", retry + 1, RETRY_COUNT);
+            continue;
+        }
         const ssize_t length = read(inotify_fd, event_buf, sizeof(event_buf));
         if (length < 0) {
             perror("read");
@@ -194,6 +221,14 @@ int start_daemon(void) {
 
     if (pid > 0) {
         log_debug("Parent process: daemon forked with PID %d", pid);
+        int status;
+        const pid_t wpid = waitpid(pid, &status, 0);
+        if (wpid < 0) {
+            perror("waitpid");
+        }
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS)
+            log_err("Daemon failed to start");
+        else log_info("Daemon started successfully");
         return EXIT_SUCCESS;
     }
 
@@ -220,7 +255,7 @@ int start_daemon(void) {
 
     unsetenv("LD_PRELOAD");
     unsetenv("LD_LIBRARY_PATH");
-    char client_path[STANDARD_BUFFER_SIZE];
+    char client_path[PATH_MAX];
     const ssize_t len = readlink("/proc/self/exe", client_path, sizeof(client_path) - 1);
     if (len < 0) {
         log_err("Failed to resolve client executable path");
@@ -229,7 +264,7 @@ int start_daemon(void) {
     client_path[len] = '\0';
     log_debug("Resolved client executable path: %s", client_path);
 
-    char path_copy[STANDARD_BUFFER_SIZE];
+    char path_copy[PATH_MAX];
     snprintf(path_copy, sizeof(path_copy), "%s", client_path);
     char *dir = dirname(path_copy);
     if (!dir) {
@@ -237,10 +272,13 @@ int start_daemon(void) {
         exit(EXIT_FAILURE);
     }
     log_debug("Extracted directory: %s", dir);
-
-    char daemon_path[STANDARD_BUFFER_SIZE];
+    char daemon_path[PATH_MAX];
     snprintf(daemon_path, sizeof(daemon_path), "%s/wdaemon", dir);
     log_debug("Daemon executable path: %s", daemon_path);
+    if (access(daemon_path, X_OK)) {
+        log_err("Daemon executable not found or not executable: %s", daemon_path);
+        exit(EXIT_FAILURE);
+    }
 
     log_debug("Executing daemon: %s", daemon_path);
     execv(daemon_path, (char *const[]){ "wdaemon", NULL });
