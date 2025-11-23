@@ -71,6 +71,11 @@ message_t *read_message(const int sockfd) {
             log_err("Incomplete message data");
             return NULL;
         }
+        if (msg->data[header.length - 1] != '\0') {
+            free_message(msg);
+            log_err("Message data does not end with a null terminator");
+            return NULL;
+        }
     }
     return msg;
 }
