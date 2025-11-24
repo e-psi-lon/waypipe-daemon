@@ -123,17 +123,23 @@ int main(const int argc, char *argv[]) {
 
 char *client_get_socket_directory(void) {
     static char socket_directory[SOCKET_PATH_MAX];
+    static bool initialized = false;
+    if (initialized) return socket_directory;
     if (get_socket_directory(socket_directory, sizeof(socket_directory)) != EXIT_SUCCESS)
         return NULL;
+    initialized = true;
     return socket_directory;
 }
 
 char *client_get_socket_path(void) {
     static char socket_path[SOCKET_PATH_MAX];
+    static bool initialized = false;
+    if (initialized) return socket_path;
     const char *socket_directory = client_get_socket_directory();
     if (!socket_directory) return NULL;
     if (get_socket_path(socket_path, sizeof(socket_path), socket_directory) != EXIT_SUCCESS)
         return NULL;
+    initialized = true;
     return socket_path;
 }
 
