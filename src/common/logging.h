@@ -3,24 +3,39 @@
 #include <stdarg.h>
 #include <syslog.h>
 
-#ifdef WAYPIPEDAEMON_DAEMON_H
-    #define FACILITY LOG_DAEMON
-#elif defined(WAYPIPEDAEMON_CLIENT_H)
-    #define FACILITY LOG_USER
-#else
-    #define FACILITY LOG_LOCAL0
-#endif
-
+#define weak __attribute__((weak))
 
 /**
  * Logging utility using syslog.
- * Auto-initializes on first use.
+ * Auto-initializes on first use with per-binary name and facility.
+ *
+ * The logging system uses weak symbols to allow each binary to customize
+ * its log name and facility. Define strong versions of get_log_name() and
+ * get_log_facility() in your binary to override the defaults.
  *
  * Usage: log_info("Message: %s", value);
  *        log_err("Error code: %d", errno);
  *        log_warning("Warning");
  *        log_debug("Debug info");
  */
+
+/**
+ * Get the log name for this binary.
+ * Override this function in your binary to customize the syslog identity.
+ * Default: "waypipe"
+ *
+ * @return The name to use for syslog identification
+ */
+const char *get_log_name(void);
+
+/**
+ * Get the syslog facility for this binary.
+ * Override this function in your binary to customize the facility.
+ * Default: LOG_LOCAL0
+ *
+ * @return The syslog facility (e.g., LOG_USER, LOG_DAEMON)
+ */
+int get_log_facility(void);
 
 void openlog_name(const char *name);
 

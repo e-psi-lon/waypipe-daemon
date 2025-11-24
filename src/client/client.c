@@ -18,6 +18,17 @@
 #include "common/protocol.h"
 #include "common/logging.h"
 
+
+// Logging configuration (overrides weak symbols from logging.c)
+const char *get_log_name(void) {
+    return "wdclient";
+}
+
+int get_log_facility(void) {
+    return LOG_USER;
+}
+
+
 int main(const int argc, char *argv[]) {
     if (argc < 2) {
         return fail("Missing command to execute\nUsage: %s <command...>", argv[0]);
@@ -250,10 +261,7 @@ int start_daemon(void) {
         return EXIT_SUCCESS;
     }
 
-    // Initialize logging
-    openlog_name("waypipe-daemon");
-    log_debug("Child process: starting daemon initialization");
-
+    // Child process: prepare environment and exec the daemon
     const int devnull = open("/dev/null", O_RDWR);
     if (devnull < 0) {
         perror("open");
