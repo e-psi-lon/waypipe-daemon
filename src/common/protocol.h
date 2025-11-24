@@ -17,7 +17,7 @@
  *
  * This limit prevents excessive memory allocation and potential DoS attacks.
  */
-#define MAX_MESSAGE_SIZE ((uint16_t)65536)
+#define MAX_MESSAGE_SIZE ((uint16_t)65535)
 
 #define UINT8(x) ((uint8_t)(x))
 
