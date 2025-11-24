@@ -26,7 +26,7 @@
  * after starting the daemon process. The client will attempt to connect
  * this many times, with a short delay between attempts, before giving up.
  */
-#define RETRY_COUNT 4
+#define RETRY_COUNT 8
 
 
 /**

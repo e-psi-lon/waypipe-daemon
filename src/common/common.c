@@ -23,13 +23,13 @@ int get_socket_directory(char *buffer, const size_t size) {
     if (xdg_runtime_dir && xdg_runtime_dir[0] != '\0') {
         if (snprintf(buffer, size, "%s", xdg_runtime_dir) >= (int)size)
             return EXIT_FAILURE;
-    } else return EXIT_FAILURE;
+    } else return EXIT_FAILURE; // No log because get_socket_path might call get_socket_directory -> avoid redundant logs
     return EXIT_SUCCESS;
 }
 
 int get_socket_path(char *buffer, const size_t size, const char *dir) {
     if (!dir) {
-        log_err("XDG_RUNTIME_DIR not set");
+        log_err("Invalid directory for socket path");
         return EXIT_FAILURE;
     }
     const int written = snprintf(buffer, size, "%s/%s", dir, DAEMON_INT_SOCK);
