@@ -1,7 +1,5 @@
 #ifndef WAYPIPEDAEMON_COMMON_H
 #define WAYPIPEDAEMON_COMMON_H
-#include <sys/un.h>
-#include <string.h>
 #include "protocol.h"
 
 

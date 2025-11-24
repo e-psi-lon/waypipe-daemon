@@ -9,7 +9,6 @@
 
 #ifndef WAYPIPEDAEMON_CLIENT_H
 #define WAYPIPEDAEMON_CLIENT_H
-#include <sys/inotify.h>
 
 
 /**
