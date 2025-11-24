@@ -13,11 +13,13 @@
 #include <stdint.h>
 
 /**
- * @brief Maximum size of a message in bytes (16 MB)
+ * @brief Maximum size of a message in bytes (65 KB)
  *
  * This limit prevents excessive memory allocation and potential DoS attacks.
  */
-#define MAX_MESSAGE_SIZE (16*1024*1024)
+#define MAX_MESSAGE_SIZE ((uint16_t)65536)
+
+#define UINT8(x) ((uint8_t)(x))
 
 /**
  * @brief Header for all protocol messages
@@ -25,8 +27,8 @@
  * Contains metadata about the message type and payload length.
  */
 typedef struct {
-    uint32_t type;      /**< Message type identifier (see message_type_t) */
-    uint32_t length;    /**< Length of the message payload in bytes */
+    uint8_t type;      /**< Message type identifier (see message_type_t) */
+    uint16_t length;    /**< Length of the message payload in bytes */
 } message_header_t;
 
 /**

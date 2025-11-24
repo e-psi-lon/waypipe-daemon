@@ -31,8 +31,8 @@ message_t *create_message(const message_type_t type, const char *data, const siz
     if (data && data[length - 1] != '\0') return NULL;
     message_t *msg = malloc(sizeof(message_header_t) + length);
     if (!msg) return NULL;
-    msg->header.type = type;
-    msg->header.length = length;
+    msg->header.type = UINT8(type);
+    msg->header.length = (uint16_t)length;
     if (data) memcpy(msg->data, data, length);
     log_debug("Allocating message with type: %" PRIu32, msg->header.type);
     return msg;
@@ -45,7 +45,7 @@ message_t *read_message(const int sockfd) {
         perror("recv");
         return NULL;
     }
-    if (length < sizeof(message_header_t)){
+    if (length < (ssize_t)sizeof(message_header_t)) {
         log_err("Incomplete message header");
         return NULL;
     }
