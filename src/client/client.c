@@ -88,12 +88,15 @@ int main(const int argc, char *argv[]) {
     }
     log_info("Connected to daemon successfully.");
 
+    // 4096 characters is more than enough for 99.999% GUI app commands.
+    // 1024 or 2048 could've been used, but this ensures 0.099% use case coverage
+    // Without being too expensive
     char argument_string_buf[STANDARD_BUFFER_SIZE*4];
     argument_string_buf[0] = '\0';
     size_t used = 0;
     int ret = 0;
     for (int i = 1; i < argc; i++) {
-        ret = snprintf(argument_string_buf + used, sizeof(argument_string_buf) - used, "%s%s", argv[i], (i < argc - 1) ? " " : "");
+        ret = snprintf(argument_string_buf + used, sizeof(argument_string_buf) - used, "%s%s", argv[i], i < argc - 1 ? " " : "");
 
         if (ret < 0 || (size_t)ret >= sizeof(argument_string_buf) - used)
             return fail("Command line arguments too long");
@@ -207,8 +210,9 @@ int wait_inotify(const char *socket_directory) {
         }
         for (ssize_t i = 0; i < length;) {
             struct inotify_event event;
-            memcpy(&event, &event_buf[i], sizeof(event));
-            if (event.len > 0 && (event.mask & IN_CREATE) && strcmp(event.name, DAEMON_INT_SOCK) == 0) {
+            memcpy(&event, &event_buf[i], EVENT_SIZE);
+            const char *name_ptr = &event_buf[i + (ssize_t)EVENT_SIZE]; // This is required to avoid reading from uninitialized memory
+            if (event.len > 0 && event.mask & IN_CREATE && strncmp(name_ptr, DAEMON_INT_SOCK, event.len) == 0) {
                 log_info("Daemon socket created. Connecting...");
                 socket_found = true;
                 break;
