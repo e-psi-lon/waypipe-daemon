@@ -36,6 +36,7 @@ add_library(wdcommon OBJECT
         src/common/common.h
 
 )
+target_include_directories(wdcommon PUBLIC src)
 
 add_executable(wdaemon src/daemon/daemon.c
         src/daemon/daemon.h)

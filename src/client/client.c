@@ -14,9 +14,9 @@
 #include <libgen.h>
 #include "client.h"
 #include <limits.h>
-#include "../common/common.h"
-#include "../common/protocol.h"
-#include "../common/logging.h"
+#include "common/common.h"
+#include "common/protocol.h"
+#include "common/logging.h"
 
 int main(const int argc, char *argv[]) {
     if (argc < 2) {
