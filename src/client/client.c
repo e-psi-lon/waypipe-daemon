@@ -34,17 +34,15 @@ int main(const int argc, char *argv[]) {
         // Starts the daemon if not running
         // The daemon "knows" it's starting, it automatically
         // Sends a READY message when initialized
-        if (start_daemon() != EXIT_SUCCESS) {
+        if (start_daemon() != EXIT_SUCCESS)
             return fail("Failed to start daemon");
-        }
         int status;
         // The socket might have created the socket too fast
         // Ensure it doesn't exist before waiting for inotify
         if (access(socket_path, F_OK)) status = wait_inotify(socket_directory);
         else status = EXIT_SUCCESS;
-        if (status != EXIT_SUCCESS) {
+        if (status != EXIT_SUCCESS)
             return fail("Failed to check for daemon socket");
-        }
         int attempts = 0;
         const int max_attempts = 5;
         int delay_ms = 50;
@@ -68,12 +66,10 @@ int main(const int argc, char *argv[]) {
         // Alert the daemon that a new client has connected
         // The daemon then acknowledges the message reception with a READY
         auto_free_message message_t *hello_msg = create_message(MSG_HELLO, NULL, 0);
-        if (!hello_msg) {
+        if (!hello_msg)
             return fail("Failed to create HELLO message");
-        }
-        if (send_message(sockfd, hello_msg) != EXIT_SUCCESS) {
+        if (send_message(sockfd, hello_msg) != EXIT_SUCCESS)
             return fail("Failed to send HELLO message");
-        }
     }
     log_info("Waypipe daemon's client started");
     // Await for a READY message from the daemon
@@ -91,34 +87,34 @@ int main(const int argc, char *argv[]) {
     // 4096 characters is more than enough for 99.999% GUI app commands.
     // 1024 or 2048 could've been used, but this ensures 0.099% use case coverage
     // Without being too expensive
-    char argument_string_buf[STANDARD_BUFFER_SIZE*4];
+    char argument_string_buf[STANDARD_BUFFER_SIZE * 4];
     argument_string_buf[0] = '\0';
     size_t used = 0;
     int ret = 0;
     for (int i = 1; i < argc; i++) {
-        ret = snprintf(argument_string_buf + used, sizeof(argument_string_buf) - used, "%s%s", argv[i], i < argc - 1 ? " " : "");
+        ret = snprintf(argument_string_buf + used, sizeof(argument_string_buf) - used, "%s%s", argv[i],
+                       i < argc - 1 ? " " : "");
 
         if (ret < 0 || (size_t)ret >= sizeof(argument_string_buf) - used)
             return fail("Command line arguments too long");
         used += (size_t)ret;
     }
 
-    auto_free_message message_t *command = create_message(MSG_SEND, argument_string_buf, STRLENGTH_WITH_NULL(argument_string_buf));
+    auto_free_message message_t* command = create_message(MSG_SEND, argument_string_buf,
+                                                          STRLENGTH_WITH_NULL(argument_string_buf));
     if (!command) {
         return fail("Failed to create command message");
     }
-    if (send_message(sockfd, command) != EXIT_SUCCESS){
+    if (send_message(sockfd, command) != EXIT_SUCCESS) {
         return fail("Failed to send command message");
     }
     log_info("Command sent to daemon: \"%s\"", argument_string_buf);
     auto_free_message message_t *success_response = read_message(sockfd);
-    if (!success_response) {
+    if (!success_response)
         return fail("Failed to read success response from daemon");
-    }
-    if (success_response->header.type != MSG_RESPONSE_OK) {
+    if (success_response->header.type != MSG_RESPONSE_OK)
         return fail("Daemon didn't receive the command successfully: %s",
                     success_response->header.length > 0 ? success_response->data : "(no message in error response)");
-    }
     log_info("Command received by the daemon successfully.");
     closelog();
     return EXIT_SUCCESS;
@@ -186,7 +182,7 @@ int wait_inotify(const char *socket_directory) {
         perror("inotify_add_watch");
         return EXIT_FAILURE;
     }
-    char event_buf[EVENT_SIZE*64];
+    char event_buf[EVENT_SIZE * 64];
     bool socket_found = false;
     for (int retry = 0; retry < RETRY_COUNT && !socket_found; retry++) {
         struct pollfd pfd = {
@@ -211,7 +207,8 @@ int wait_inotify(const char *socket_directory) {
         for (ssize_t i = 0; i < length;) {
             struct inotify_event event;
             memcpy(&event, &event_buf[i], EVENT_SIZE);
-            const char *name_ptr = &event_buf[i + (ssize_t)EVENT_SIZE]; // This is required to avoid reading from uninitialized memory
+            // This is required to avoid reading from uninitialized memory
+            const char *name_ptr = &event_buf[i + (ssize_t)EVENT_SIZE];
             if (event.len > 0 && event.mask & IN_CREATE && strncmp(name_ptr, DAEMON_INT_SOCK, event.len) == 0) {
                 log_info("Daemon socket created. Connecting...");
                 socket_found = true;
@@ -226,7 +223,6 @@ int wait_inotify(const char *socket_directory) {
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
-
 }
 
 int start_daemon(void) {
@@ -303,7 +299,7 @@ int start_daemon(void) {
     }
 
     log_debug("Executing daemon: %s", daemon_path);
-    execv(daemon_path, (char *const[]){ "wdaemon", NULL });
+    execv(daemon_path, (char *const[]){"wdaemon", NULL});
     // If execv returns, something went wrong
     perror("execv");
     exit(EXIT_FAILURE);
