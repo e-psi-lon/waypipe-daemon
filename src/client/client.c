@@ -55,7 +55,7 @@ int main(const int argc, char *argv[]) {
 
             log_debug("Connection attempt %d failed, retrying in %dms",
                       attempts + 1, delay_ms);
-            usleep(delay_ms * 1000);
+            usleep((useconds_t)delay_ms * 1000);
             delay_ms *= 2;
             attempts++;
         }
@@ -97,7 +97,7 @@ int main(const int argc, char *argv[]) {
 
         if (ret < 0 || (size_t)ret >= sizeof(argument_string_buf) - used)
             return fail("Command line arguments too long");
-        used += ret;
+        used += (size_t)ret;
     }
 
     auto_free_message message_t *command = create_message(MSG_SEND, argument_string_buf, STRLENGTH_WITH_NULL(argument_string_buf));
@@ -150,7 +150,7 @@ int fail(const char *msg, ...) {
     va_end(ap);
     closelog();
     return EXIT_FAILURE;
-};
+}
 
 
 int connect_to_daemon(const char *path) {
@@ -205,14 +205,15 @@ int wait_inotify(const char *socket_directory) {
             inotify_rm_watch(inotify_fd, watch_fd);
             return EXIT_FAILURE;
         }
-        for (size_t i = 0; i < length;) {
-            const struct inotify_event *event = (const struct inotify_event *)&event_buf[i];
-            if (event->len > 0 && (event->mask & IN_CREATE) && strcmp(event->name, DAEMON_INT_SOCK) == 0) {
+        for (ssize_t i = 0; i < length;) {
+            struct inotify_event event;
+            memcpy(&event, &event_buf[i], sizeof(event));
+            if (event.len > 0 && (event.mask & IN_CREATE) && strcmp(event.name, DAEMON_INT_SOCK) == 0) {
                 log_info("Daemon socket created. Connecting...");
                 socket_found = true;
                 break;
             }
-            i += EVENT_SIZE + event->len;
+            i += (ssize_t)EVENT_SIZE + event.len;
         }
     }
     inotify_rm_watch(inotify_fd, watch_fd);

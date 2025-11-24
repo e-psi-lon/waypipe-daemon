@@ -86,7 +86,7 @@ int send_message(const int sockfd, const message_t *msg) {
         perror("send");
         return EXIT_FAILURE;
     }
-    if (length < sizeof(message_header_t)) {
+    if (length < (ssize_t)sizeof(message_header_t)) {
         log_err("Incomplete message header sent");
         return EXIT_FAILURE;
     }
