@@ -19,6 +19,9 @@
 #include "../common/logging.h"
 
 int main(const int argc, char *argv[]) {
+    if (argc < 2) {
+        return fail("Missing command to execute\nUsage: %s <command...>", argv[0]);
+    }
     const char *socket_directory = client_get_socket_directory();
     const char *socket_path = client_get_socket_path();
     if (!socket_path) {
@@ -29,7 +32,11 @@ int main(const int argc, char *argv[]) {
     if (sockfd < 0) {
         log_info("Daemon not running. Starting daemon...");
         // Starts the daemon if not running
-        start_daemon();
+        // The daemon "knows" it's starting, it automatically
+        // Sends a READY message when initialized
+        if (start_daemon() != EXIT_SUCCESS) {
+            return fail("Failed to start daemon");
+        }
         int status;
         // The socket might have created the socket too fast
         // Ensure it doesn't exist before waiting for inotify
@@ -59,6 +66,7 @@ int main(const int argc, char *argv[]) {
     } else {
         log_info("Connecting to existing daemon...");
         // Alert the daemon that a new client has connected
+        // The daemon then acknowledges the message reception with a READY
         auto_free_message message_t *hello_msg = create_message(MSG_HELLO, NULL, 0);
         if (!hello_msg) {
             return fail("Failed to create HELLO message");
@@ -225,10 +233,13 @@ int start_daemon(void) {
         const pid_t wpid = waitpid(pid, &status, 0);
         if (wpid < 0) {
             perror("waitpid");
+            return EXIT_FAILURE;
         }
-        if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS)
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS) {
             log_err("Daemon failed to start");
-        else log_info("Daemon started successfully");
+            return EXIT_FAILURE;
+        }
+        log_info("Daemon started successfully");
         return EXIT_SUCCESS;
     }
 
