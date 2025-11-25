@@ -6,6 +6,8 @@
 #define SOCKET_PATH_MAX (sizeof(((struct sockaddr_un*)0)->sun_path))
 #define DAEMON_INT_SOCK "waypipe-daemon.sock"
 #define STANDARD_BUFFER_SIZE 1024
+#define MESSAGE_RECV_TIMEOUT_MS 1000
+#define MESSAGE_RECV_RETRIES 5
 #define STRLENGTH_WITH_NULL(str) (strlen(str) + 1)
 #if defined(__GNUC__) || defined(__clang__)
     #define weak_func __attribute__((weak))

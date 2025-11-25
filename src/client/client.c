@@ -195,18 +195,18 @@ int wait_inotify(const char *socket_directory) {
     }
     char event_buf[EVENT_SIZE * 64];
     bool socket_found = false;
-    for (int retry = 0; retry < RETRY_COUNT && !socket_found; retry++) {
+    for (int retry = 0; retry <= MESSAGE_RECV_RETRIES*2 && !socket_found; retry++) {
         struct pollfd pfd = {
             .fd = inotify_fd,
             .events = POLLIN
         };
-        const int poll_ret = poll(&pfd, 1, 1000);
+        const int poll_ret = poll(&pfd, 1, MESSAGE_RECV_TIMEOUT_MS);
         if (poll_ret < 0) {
             perror("poll");
             continue;
         }
         if (poll_ret == 0) {
-            log_debug("Inotify poll timeout, retrying... (%d/%d)", retry + 1, RETRY_COUNT);
+            log_debug("Inotify poll timeout, retrying... (%d/%d)", retry + 1, MESSAGE_RECV_RETRIES*2);
             continue;
         }
         const ssize_t length = read(inotify_fd, event_buf, sizeof(event_buf));
@@ -230,7 +230,7 @@ int wait_inotify(const char *socket_directory) {
     }
     inotify_rm_watch(inotify_fd, watch_fd);
     if (!socket_found) {
-        log_err("Daemon socket not found after %d retries.", RETRY_COUNT);
+        log_err("Daemon socket not found after %d retries.", MESSAGE_RECV_RETRIES*2);
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;

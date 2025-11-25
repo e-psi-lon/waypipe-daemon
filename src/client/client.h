@@ -19,15 +19,6 @@
  */
 #define EVENT_SIZE (sizeof(struct inotify_event))
 
-/**
- * @brief Number of retries to connect to the socket before giving up
- *
- * This is used when the client tries to connect to the daemon's socket
- * after starting the daemon process. The client will attempt to connect
- * this many times, with a short delay between attempts, before giving up.
- */
-#define RETRY_COUNT 8
-
 
 /**
  * @brief Connect to the socket at a given path.
