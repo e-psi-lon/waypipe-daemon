@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <stdatomic.h>
 #include <stdbool.h>
+#include "common.h"
 
 static atomic_bool g_logging_initialized = ATOMIC_VAR_INIT(false);
 
@@ -10,7 +11,7 @@ static atomic_bool g_logging_initialized = ATOMIC_VAR_INIT(false);
  * Weak default implementation - returns "waypipe"
  * Override where needed with a strong symbol
  */
-weak const char *get_log_name(void) {
+weak_func const char *get_log_name(void) {
     return "wd-default";
 }
 
@@ -18,7 +19,7 @@ weak const char *get_log_name(void) {
  * Weak default implementation - returns LOG_LOCAL0
  * Override where needed with a strong symbol
  */
-weak int get_log_facility(void) {
+weak_func int get_log_facility(void) {
     return LOG_LOCAL0;
 }
 
@@ -31,10 +32,7 @@ void vlog_impl(const int level, const char *fmt, va_list args) {
     if (atomic_compare_exchange_strong(&g_logging_initialized, &expected, true)) {
         openlog_name(get_log_name());
     }
-    va_list args_copy;
-    va_copy(args_copy, args);
-    vsyslog(level, fmt, args_copy);
-    va_end(args_copy);
+    vsyslog(level, fmt, args);
 }
 
 
