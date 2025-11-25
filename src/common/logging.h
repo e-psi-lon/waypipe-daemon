@@ -38,8 +38,8 @@ int get_log_facility(void);
 
 void openlog_name(const char *name);
 
-void vlog_impl(int level, const char *fmt, va_list args) format_func(syslog, 2, 0);
-void log_impl(int level, const char *fmt, ...) format_func(syslog, 2, 3);
+void vlog_impl(int level, const char *fmt, va_list args) format_func(printf, 2, 0);
+void log_impl(int level, const char *fmt, ...) format_func(printf, 2, 3);
 
 /**
  * Logging macros - wrap the implementation function

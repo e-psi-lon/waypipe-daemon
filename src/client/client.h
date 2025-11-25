@@ -67,7 +67,7 @@ int start_daemon(void);
  * @param ... Additional arguments for formatting the message
  * @return The exit code to use (EXIT_FAILURE)
  */
-int fail(const char *msg, ...) format_func(syslog, 1, 2);
+int fail(const char *msg, ...) format_func(printf, 1, 2);
 
 /**
  * @brief Get the path to the socket - adapted to the client.
