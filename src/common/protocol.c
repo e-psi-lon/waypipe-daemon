@@ -75,10 +75,6 @@ message_t *read_message(const int sockfd) {
         log_err("Incomplete message header");
         return NULL;
     }
-    if (header.length > MAX_MESSAGE_SIZE) {
-        log_err("Message data received exceeds maximum size");
-        return NULL;
-    }
     message_t *msg = malloc(sizeof(message_header_t) + header.length);
     if (!msg) {
         perror("malloc");
