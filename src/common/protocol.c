@@ -4,9 +4,10 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <sys/socket.h>
+#include <poll.h>
 
 #include "logging.h"
-
+#include "common.h"
 
 void get_message_type_string(const message_type_t type, char *buf, const size_t buf_size) {
     const char *name = NULL;
@@ -44,6 +45,26 @@ message_t *create_message(const message_type_t type, const char *data, const siz
 }
 
 message_t *read_message(const int sockfd) {
+    struct pollfd pfd = {
+        .fd = sockfd,
+        .events = POLLIN
+    };
+
+    int poll_ret = 0;
+    for (int retry = 0; retry < MESSAGE_RECV_RETRIES; retry++) {
+        poll_ret = poll(&pfd, 1, MESSAGE_RECV_TIMEOUT_MS);
+        if (poll_ret > 0) break;
+        if (poll_ret < 0) {
+            perror("poll");
+            return NULL;
+        }
+    }
+
+    if (poll_ret == 0) {
+        log_err("Timeout waiting for message header after %d retries", MESSAGE_RECV_RETRIES);
+        return NULL;
+    }
+
     message_header_t header;
     ssize_t length = recv(sockfd, &header, sizeof(message_header_t), MSG_WAITALL);
     if (length < 0) {
@@ -65,6 +86,23 @@ message_t *read_message(const int sockfd) {
     }
     msg->header = header;
     if (header.length > 0) {
+        for (int retry = 0; retry < MESSAGE_RECV_RETRIES; retry++) {
+            poll_ret = poll(&pfd, 1, MESSAGE_RECV_TIMEOUT_MS);
+            if (poll_ret > 0) break;  // Data available
+            if (poll_ret < 0) {
+                perror("poll");
+                free_message(msg);
+                return NULL;
+            }
+            // poll_ret == 0 (timeout), continue retrying
+        }
+
+        if (poll_ret == 0) {
+            log_err("Timeout waiting for message data after %d retries", MESSAGE_RECV_RETRIES);
+            free_message(msg);
+            return NULL;
+        }
+
         length = recv(sockfd, msg->data, header.length, MSG_WAITALL);
         if (length < 0) {
             perror("recv");
