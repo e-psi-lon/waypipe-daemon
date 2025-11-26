@@ -214,7 +214,9 @@ int wait_inotify(const char *socket_directory) {
         const ssize_t length = read(inotify_fd, event_buf, sizeof(event_buf));
         if (length < 0) {
             perror("read");
-            inotify_rm_watch(inotify_fd, watch_fd);
+            if (inotify_rm_watch(inotify_fd, watch_fd) < 0) {
+                log_debug("inotify_rm_watch failed"); // Despite being a system error, we only log it as debug since it's non-fatal
+            }
             return EXIT_FAILURE;
         }
         for (ssize_t i = 0; i < length;) {
@@ -230,7 +232,9 @@ int wait_inotify(const char *socket_directory) {
             i += (ssize_t)EVENT_SIZE + event.len;
         }
     }
-    inotify_rm_watch(inotify_fd, watch_fd);
+    if (inotify_rm_watch(inotify_fd, watch_fd) < 0) {
+        log_debug("inotify_rm_watch failed"); // Same as above, non-fatal
+    }
     if (!socket_found) {
         log_err("Daemon socket not found after %d retries.", MESSAGE_RECV_RETRIES*2);
         return EXIT_FAILURE;
