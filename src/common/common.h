@@ -1,6 +1,8 @@
 #ifndef WAYPIPEDAEMON_COMMON_H
 #define WAYPIPEDAEMON_COMMON_H
+#include <sys/un.h>
 #include "protocol.h"
+#include <string.h>
 
 
 #define SOCKET_PATH_MAX (sizeof(((struct sockaddr_un*)0)->sun_path))
