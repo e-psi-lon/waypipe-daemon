@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <poll.h>
+#include <arpa/inet.h>
 
 #include "logging.h"
 #include "common.h"
@@ -75,6 +76,7 @@ message_t *read_message(const int sockfd) {
         log_err("Incomplete message header");
         return NULL;
     }
+    header.length = ntohs(header.length);
     message_t *msg = malloc(sizeof(message_header_t) + header.length);
     if (!msg) {
         perror("malloc");
@@ -120,7 +122,11 @@ message_t *read_message(const int sockfd) {
 }
 
 int send_message(const int sockfd, const message_t *msg) {
-    ssize_t length = send(sockfd, &msg->header, sizeof(message_header_t), MSG_NOSIGNAL);
+    message_header_t header_net = {
+        .type = msg->header.type,
+        .length = htons(msg->header.length)
+    };
+    ssize_t length = send(sockfd, &header_net, sizeof(message_header_t), MSG_NOSIGNAL);
     if (length < 0) {
         perror("send");
         return EXIT_FAILURE;
