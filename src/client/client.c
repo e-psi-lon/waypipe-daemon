@@ -106,7 +106,9 @@ int main(const int argc, char *argv[]) {
         ret = snprintf(argument_string_buf + used, sizeof(argument_string_buf) - used, "%s%s", argv[i],
                        i < argc - 1 ? " " : "");
 
-        if (ret < 0 || (size_t)ret >= sizeof(argument_string_buf) - used)
+        if (ret < 0)
+            return fail("Encoding error in command line arguments");
+        if ((size_t)ret >= sizeof(argument_string_buf) - used)
             return fail("Command line arguments too long");
         used += (size_t)ret;
     }
