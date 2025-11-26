@@ -281,6 +281,7 @@ int start_daemon(void) {
 
     unsetenv("LD_PRELOAD");
     unsetenv("LD_LIBRARY_PATH");
+    openlog_name("wdaemon-launcher");
     char client_path[PATH_MAX];
     const ssize_t len = readlink("/proc/self/exe", client_path, sizeof(client_path) - 1);
     if (len < 0) {

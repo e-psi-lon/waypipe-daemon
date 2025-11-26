@@ -14,6 +14,7 @@
 #if defined(__GNUC__) || defined(__clang__)
     #define weak_func __attribute__((weak))
     #define format_func(archetype, fmt_idx, args_idx) __attribute__((format(archetype, fmt_idx, args_idx)))
+    #define packed_struct __attribute__((packed))
     void close_ptr(const int *fd);
     void free_ptr(void **ptr);
     void free_message_ptr(message_t **msg);

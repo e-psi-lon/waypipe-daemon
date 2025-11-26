@@ -26,7 +26,7 @@
  *
  * Contains metadata about the message type and payload length.
  */
-typedef struct {
+typedef struct packed_struct {
     uint8_t type;      /**< Message type identifier (see message_type_t) */
     uint16_t length;    /**< Length of the message payload in bytes */
 } message_header_t;
@@ -52,7 +52,7 @@ typedef enum {
  * allowing variable-length messages without additional pointer indirection.
  * The length of the array is defined by the length field in the header.
  */
-typedef struct {
+typedef struct packed_struct {
     message_header_t header;  /**< Message header containing type and length */
     char data[];              /**< Variable-length payload data */
 } message_t;
