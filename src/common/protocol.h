@@ -12,6 +12,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(__GNUC__) || defined(__clang__)
+
+#define packed_struct __attribute__((packed))
+
+#endif
+
+
 /**
  * @brief Maximum size of a message in bytes (65 KB)
  *
