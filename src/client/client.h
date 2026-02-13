@@ -15,7 +15,7 @@
 /**
  * @brief Size of an inotify event structure
  *
- * This defines a shorthand to access the size of an event from inotify.
+ * This defines shorthand to access the size of an event from inotify.
  */
 #define EVENT_SIZE (sizeof(struct inotify_event))
 

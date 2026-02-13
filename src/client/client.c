@@ -1,3 +1,4 @@
+#include "client.h"
 #include <stdbool.h>
 #include <string.h>
 #include <stdarg.h>
@@ -12,12 +13,10 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <libgen.h>
-#include "client.h"
 #include <limits.h>
 #include "common/common.h"
 #include "common/protocol.h"
 #include "common/logging.h"
-
 
 // Logging configuration (overrides weak symbols from logging.c)
 const char *get_log_name(void) {
@@ -126,7 +125,7 @@ int main(const int argc, char *argv[]) {
     if (!success_response)
         return fail("Failed to read success response from daemon");
     if (success_response->header.type != MSG_RESPONSE_OK)
-        return fail("Daemon didn't receive the command successfully: %s",
+        return fail("Daemon didn't receive the command correctly: %s",
                     success_response->header.length > 0 ? success_response->data : "(no message in error response)");
     log_info("Command received by the daemon successfully.");
     closelog();
@@ -308,14 +307,15 @@ int start_daemon(void) {
     char daemon_path[PATH_MAX];
     snprintf(daemon_path, sizeof(daemon_path), "%s/wdaemon", dir);
     log_debug("Daemon executable path: %s", daemon_path);
-    if (access(daemon_path, X_OK)) {
-        log_err("Daemon executable not found or not executable: %s", daemon_path);
+
+    const int daemon_fd = open(daemon_path, O_RDONLY | O_CLOEXEC);
+    if (daemon_fd < 0){
+        perror("open");
         exit(EXIT_FAILURE);
     }
-
-    log_debug("Executing daemon: %s", daemon_path);
-    execv(daemon_path, (char *const[]){"wdaemon", NULL});
-    // If execv returns, something went wrong
-    perror("execv");
+    log_debug("Executing daemon: %s using fd: %d", daemon_path, daemon_fd);
+    fexecve(daemon_fd, (char *const[]){"wdaemon", NULL}, (char *const[]){NULL});
+    // If fexecve returns, something went wrong
+    perror("fexecve");
     exit(EXIT_FAILURE);
 }
