@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/syslog.h>
+#include <stdio.h>
 
 #include "common/logging.h"
 
@@ -20,6 +21,9 @@ int main(void) {
     char *pwd = getcwd(NULL, 0);
     log_debug("Current working directory: %s", pwd);
     closelog();
+    const int pid = fork();
+    if (pid < 0) perror("fork");
+    else if (pid > 0) exit(EXIT_SUCCESS);
 
     return system("python3 ../daemon.py --send-ready");
 }

@@ -34,8 +34,8 @@ add_library(wdcommon OBJECT
         src/common/logging.c
         src/common/common.c
         src/common/common.h
-
 )
+
 target_include_directories(wdcommon PUBLIC src)
 
 add_executable(wdaemon src/daemon/daemon.c

@@ -29,17 +29,28 @@ def create_message(msg_type, data=None):
     elif isinstance(data, str):
         data = data.encode('utf-8')
     
-    # Pack header: type (uint32) + length (uint32)
-    header = struct.pack('II', msg_type, len(data))
+    # Append null terminator if data is not empty (C protocol requirement)
+    # The C protocol expects data to end with '\0' and includes it in the length
+    if data:
+        data = data + b'\0'
+
+    # Pack header: type (uint8) + length (uint16, network byte order)
+    # This matches the C protocol: message_header_t { uint8_t type; uint16_t length; }
+    header = struct.pack('!BH', msg_type, len(data))
     return header + data
 
 def parse_message(data):
     """Parse a message and return (type, payload)."""
-    if len(data) < 8:
+    if len(data) < 3:
         return None, None
     
-    msg_type, length = struct.unpack('II', data[:8])
-    payload = data[8:8+length]
+    msg_type, length = struct.unpack('!BH', data[:3])
+    payload = data[3:3+length]
+
+    # Strip null terminator from payload if present (C protocol includes it in length)
+    if payload and payload[-1:] == b'\0':
+        payload = payload[:-1]
+
     return msg_type, payload
 
 def handle_client(client_socket, client_addr, ready_already_sent=False):
